@@ -49,7 +49,7 @@ Au premier lancement de Ren'Py, ouvrez le projet depuis le launcher, ou passez s
 .venv/bin/python tools/fiches.py generer               # écrit le .rpy et les tests de parcours, relu par Godot
 .venv/bin/python tools/fiches.py provisoires           # images et vidéos provisoires pour ce qui manque
 .venv/bin/python tools/fiches.py production            # images et vidéos à produire
-.venv/bin/python tools/fiches.py graphe                # graphe des routes (Mermaid)
+.venv/bin/python tools/fiches.py graphe --ouvrir       # graphe interactif des routes (contenu/graphe.html)
 .venv/bin/python tools/fiches.py contexte CH01_SC02    # paquet pour écrire une scène
 .venv/bin/python tools/fiches.py traduire en           # met à jour la traduction anglaise
 python3 tools/convertir_videos.py                      # .webm → .ogv pour Godot

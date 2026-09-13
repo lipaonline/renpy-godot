@@ -51,7 +51,7 @@ The first time, you can also open the project from the Ren'Py launcher.
 .venv/bin/python tools/fiches.py generer               # write the .rpy script and route tests, then have Godot re-read it
 .venv/bin/python tools/fiches.py provisoires           # placeholder images and videos for anything missing
 .venv/bin/python tools/fiches.py production            # list of images and videos to produce
-.venv/bin/python tools/fiches.py graphe                # route graph (Mermaid)
+.venv/bin/python tools/fiches.py graphe --ouvrir       # interactive route graph (contenu/graphe.html)
 .venv/bin/python tools/fiches.py contexte CH01_SC02    # context pack for writing a scene
 .venv/bin/python tools/fiches.py traduire en           # update the English translation file
 python3 tools/convertir_videos.py                      # .webm → .ogv for Godot

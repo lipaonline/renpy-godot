@@ -10,7 +10,8 @@ contenu/
 ├── scenes/…/*.yaml     une fiche par scène (sous-dossiers libres : ch01/, ch02/…)
 ├── traductions/*.yaml  un fichier par traduction (en.yaml…), tenu à jour par traduire
 ├── production.md       (généré) images et vidéos à produire
-└── graphe.md           (généré) graphe des routes
+├── graphe.html         (généré) graphe interactif des routes, à ouvrir dans un navigateur
+└── graphe.md           (généré) graphe des routes (Mermaid)
 ```
 
 ## Mise en route (une fois)
@@ -27,7 +28,7 @@ python3 -m venv .venv
 3. **Écriture.** Compléter `contenu` et `choix`.
 4. **Contrôle.** `.venv/bin/python tools/fiches.py verifier`.
 5. **Génération.** `.venv/bin/python tools/fiches.py generer` écrit `game/story/*.rpy` et `game/galerie.json`, puis fait relire le résultat par le compilateur Godot.
-6. **Suivi.** `production` (images et vidéos à rendre) et `graphe` (routes en Mermaid).
+6. **Suivi.** `production` (images et vidéos à rendre) et `graphe` (routes). `graphe --ouvrir` ouvre `graphe.html` dans le navigateur : une carte par scène, un lien par choix, les routes de test et les avertissements de `verifier` ; un clic sur une scène montre son contenu et les valeurs possibles des variables à l'entrée.
 7. **Médias provisoires.** `provisoires` crée une image (dans `game/images/provisoires/`) ou une vidéo pour chaque média qui manque, afin que le jeu reste jouable. Dès qu'une image définitive du même nom arrive dans `game/images/`, la provisoire est retirée ; une vidéo remplacée est reconnue à son contenu. `production` distingue définitif, provisoire et manquant.
 8. **Traduction.** `traduire en` ajoute les nouvelles répliques et les nouveaux textes à `traductions/en.yaml`. Remplissez `texte`, puis lancez `generer`, qui écrit `game/tl/english/story/`. Voir [Traductions](#traductions).
 

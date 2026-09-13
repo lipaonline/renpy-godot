@@ -12,7 +12,8 @@ contenu/
 ├── scenes/…/*.yaml     one sheet per scene (free subfolders: ch01/, ch02/…)
 ├── traductions/*.yaml  one file per translation (en.yaml…), updated by traduire
 ├── production.md       (generated) images and videos to produce
-└── graphe.md           (generated) route graph
+├── graphe.html         (generated) interactive route graph, to open in a browser
+└── graphe.md           (generated) route graph (Mermaid)
 ```
 
 ## Setup (once)
@@ -29,7 +30,7 @@ python3 -m venv .venv
 3. **Writing.** Fill in `contenu` and `choix`.
 4. **Check.** `.venv/bin/python tools/fiches.py verifier`.
 5. **Generation.** `.venv/bin/python tools/fiches.py generer` writes `game/story/*.rpy` and `game/galerie.json`, then has the Godot compiler re-read the result.
-6. **Tracking.** `production` (images and videos to render) and `graphe` (routes as Mermaid).
+6. **Tracking.** `production` (images and videos to render) and `graphe` (routes). `graphe --ouvrir` opens `graphe.html` in the browser: one card per scene, one link per choice, the test routes and the warnings of `verifier`; click a scene to read its content and the possible variable values on entry.
 7. **Placeholder media.** `provisoires` creates an image (in `game/images/provisoires/`) or a video for every missing asset, so the game stays playable. As soon as a final image with the same name arrives in `game/images/`, the placeholder is removed; a replaced video is recognised by its content. `production` tells final, placeholder and missing apart.
 8. **Translation.** `traduire en` (translate) adds the new lines and texts to `traductions/en.yaml`. Fill in `texte`, then run `generer`, which writes `game/tl/english/story/`. See [Translations](#translations).
 

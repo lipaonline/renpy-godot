@@ -356,6 +356,54 @@ class Traductions(unittest.TestCase):
         self.assertIn("```yaml\nrepliques:", paquet)
 
 
+class GrapheHtml(unittest.TestCase):
+    def test_disposition_cycles_et_scenes_isolees(self):
+        a = scene("A", choix=[{"libelle": "Oui", "destination": "B"}, {"libelle": "Non", "destination": "C"}])
+        b = scene("B", suite="D")
+        c = scene("C", choix=[{"libelle": "Encore", "destination": "A"}, {"libelle": "Stop", "destination": "D"},
+                              {"libelle": "Caché", "si": "indice", "destination": "D"}])
+        p = projet(a, b, c, scene("D"), scene("Z"))
+        rapport, exploration = verifier(p)
+        self.assertEqual(rapport.erreurs, [])
+        donnees = fiches.donnees_graphe(p, exploration, rapport)
+        scenes = {s["id"]: s for s in donnees["scenes"]}
+        self.assertLess(scenes["A"]["x"], scenes["B"]["x"])
+        self.assertLess(scenes["B"]["x"], scenes["D"]["x"])
+        self.assertLess(scenes["C"]["x"], scenes["D"]["x"])
+        retour = [arete for arete in donnees["aretes"] if (arete["de"], arete["vers"]) == ("C", "A")]
+        self.assertTrue(retour and retour[0]["arriere"], "C → A ferme un cycle")
+        cache = [sortie for sortie in scenes["C"]["sorties"] if sortie["libelle"] == "Caché"][0]
+        self.assertFalse(cache["propose"])
+        self.assertFalse(scenes["Z"]["atteinte"])
+        self.assertIn("jamais atteinte", " ".join(scenes["Z"]["avertissements"]))
+        for x in {s["x"] for s in scenes.values()}:
+            colonne = sorted((s for s in scenes.values() if s["x"] == x), key=lambda s: s["y"])
+            for haut, bas in zip(colonne, colonne[1:]):
+                self.assertGreaterEqual(bas["y"], haut["y"] + haut["h"], "scènes superposées")
+
+    def test_page_de_la_demo(self):
+        rapport = fiches.Rapport()
+        p = fiches.charger(DEMO, rapport)
+        exploration = fiches.verifier(p, rapport)
+        page = fiches.graphe_html(p, exploration, rapport)
+        self.assertIn(fiches.MARQUEUR, page)
+        self.assertNotIn("{{TITRE}}", page)
+        donnees = json.loads(page.split("const DONNEES = ", 1)[1].split(";</script>", 1)[0])
+        scenes = {s["id"]: s for s in donnees["scenes"]}
+        self.assertEqual(set(scenes), set(p.scenes))
+        self.assertTrue(all(s["atteinte"] for s in scenes.values()))
+        self.assertTrue(scenes["CH01_SC01"]["debut"])
+        entree = {e["variable"]: e["valeurs"] for e in scenes["CH01_SC02"]["entree"]}
+        self.assertEqual(entree["relation_lena"], ["3", "4"])
+        self.assertEqual([(s["type"], s["libelle"]) for s in scenes["CH01_SC03B"]["sorties"]],
+                         [("appel", "appel CH01_SOUVENIR"), ("suite", "suite")])
+        self.assertEqual(scenes["CH01_SC02"]["traductions"], [{"code": "en", "total": 7, "faites": 7}])
+        self.assertEqual({r["fin"] for r in donnees["routes"]}, {"CH01_SC04", "CH01_SC05"})
+        route = donnees["routes"][0]
+        self.assertEqual(route["scenes"][0], "CH01_SC01")
+        self.assertEqual([e["choix"] for e in route["etapes"] if e["choix"]], route["choix"])
+
+
 class Provisoires(unittest.TestCase):
     def test_images_provisoires_puis_remplacees(self):
         from PIL import Image

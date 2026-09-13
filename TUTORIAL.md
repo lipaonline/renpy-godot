@@ -94,6 +94,8 @@ Link it: in `CH01_SC04.yaml`, replace `fin: true` with `suite: CH01_SC06`.
 
 Run `verifier`. The tool plays every combination of choices and tells you if a condition is false on a route, if a scene is never reached or if a variable does not exist. The `rue_matin` background does not exist yet: that is the next step.
 
+To see the whole story, run `.venv/bin/python tools/fiches.py graphe --ouvrir`. `contenu/graphe.html` opens in the browser, with one card per scene and one link per choice. Click a scene to read its content, the possible variable values on entry and its warnings; the menu at the top highlights each test route.
+
 ## 5. Images and videos
 
 - **Naming.** Images are named as in Ren'Py: `game/images/lena sourire.png` defines the image `lena sourire`. The first word is the character's tag.

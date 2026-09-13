@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La photo (démo) — routes</title>
+<!-- Fichier généré par tools/fiches.py depuis contenu/ : ne pas modifier à la main. Modèle : tools/graphe_modele.html. -->
+<style>
+:root {
+  color-scheme: dark;
+  --fond: #0e0d14; --grille: #26222f; --carte: #191723; --carte-haut: #211e2e; --bord: #312d45;
+  --texte: #ebe8f5; --doux: #9d98b3; --accent: #b48cff; --accent-fond: rgba(180, 140, 255, .15);
+  --vert: #5fd4a0; --rouge: #ff6b7a; --ambre: #f2b45c; --bleu: #74b6ff; --suite: #8c88a3;
+  --ombre: 0 6px 18px rgba(0, 0, 0, .35);
+  --largeur: 300px; --entete: 70px; --haut-sorties: 4px; --ligne: 26px;
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --fond: #f4f3f8; --grille: #d9d5e4; --carte: #ffffff; --carte-haut: #f7f5fc; --bord: #d9d4e6;
+    --texte: #1c1826; --doux: #6d6782; --accent: #7a4fd8; --accent-fond: rgba(122, 79, 216, .11);
+    --vert: #1f9d6a; --rouge: #d63c4f; --ambre: #b7791f; --bleu: #2f7fd6; --suite: #8a849d;
+    --ombre: 0 4px 14px rgba(40, 30, 70, .12);
+  }
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: var(--fond); color: var(--texte); overflow: hidden; }
+code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--accent-fond); padding: 1px 4px; border-radius: 4px; }
+ul, ol { margin: 0; padding-left: 18px; }
+
+.barre { position: fixed; inset: 0 0 auto 0; height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: var(--carte); border-bottom: 1px solid var(--bord); z-index: 10; }
+.barre .titre { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
+.barre .titre strong { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.barre .titre span { color: var(--doux); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+input, select, button { font: inherit; font-size: 13px; color: var(--texte); background: var(--carte-haut); border: 1px solid var(--bord); border-radius: 8px; height: 32px; padding: 0 10px; }
+input[type=search] { width: 240px; }
+select { width: 230px; }
+button { cursor: pointer; white-space: nowrap; }
+button:hover, input:focus, select:focus { border-color: var(--accent); outline: none; }
+button.actif { background: var(--accent-fond); border-color: var(--accent); }
+
+#vue { position: fixed; inset: 52px 0 0 0; overflow: hidden; cursor: grab; touch-action: none;
+  background-image: radial-gradient(var(--grille) 1.2px, transparent 1.2px); background-size: 22px 22px; }
+#vue.glisse { cursor: grabbing; }
+#plan { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#liens { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+
+.lien { fill: none; stroke-width: 2; transition: opacity .15s, stroke-width .15s; }
+.lien.choix { stroke: var(--accent); stroke-opacity: .7; }
+.lien.suite { stroke: var(--suite); }
+.lien.appel { stroke: var(--bleu); stroke-dasharray: 1 6; stroke-linecap: round; stroke-width: 2.4; }
+.lien.jamais { stroke: var(--rouge); stroke-dasharray: 7 6; }
+.lien.survol, .lien.actif { stroke-width: 3.4; stroke-opacity: 1; }
+.lien.attenue { opacity: .08; }
+.pointe.choix { fill: var(--accent); }
+.pointe.suite { fill: var(--suite); }
+.pointe.appel { fill: var(--bleu); }
+.pointe.jamais { fill: var(--rouge); }
+
+.noeud { position: absolute; width: var(--largeur); background: var(--carte); border: 1px solid var(--bord); border-radius: 10px; box-shadow: var(--ombre); cursor: pointer; user-select: none; transition: opacity .15s, box-shadow .15s, border-color .15s; }
+.noeud::before { content: ""; position: absolute; left: -6px; top: calc(var(--entete) / 2 - 5px); width: 10px; height: 10px; border-radius: 50%; background: var(--carte); border: 2px solid var(--doux); }
+.noeud:hover, .noeud:focus-visible { border-color: var(--accent); outline: none; }
+.noeud.debut { border-left: 4px solid var(--vert); }
+.noeud.non-atteinte { border: 1.5px dashed var(--rouge); }
+.noeud.choisi, .noeud.sur-route { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-fond), var(--ombre); }
+.noeud.trouve { border-color: var(--ambre); box-shadow: 0 0 0 3px rgba(242, 180, 92, .28), var(--ombre); }
+.noeud.attenue { opacity: .22; }
+.entete { height: var(--entete); padding: 8px 12px 0; border-radius: 9px 9px 0 0; background: var(--carte-haut); border-bottom: 1px solid var(--bord); }
+.ligne-id { display: flex; align-items: center; gap: 6px; height: 18px; }
+.sid { font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--doux); letter-spacing: .02em; white-space: nowrap; }
+.badges { display: flex; gap: 4px; margin-left: auto; overflow: hidden; }
+.badge { font-size: 10.5px; line-height: 16px; padding: 0 6px; border-radius: 8px; white-space: nowrap; border: 1px solid currentColor; }
+.badge.vert { color: var(--vert); } .badge.rouge { color: var(--rouge); } .badge.ambre { color: var(--ambre); }
+.badge.bleu { color: var(--bleu); } .badge.gris { color: var(--doux); }
+.titre-scene { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; }
+.meta { color: var(--doux); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sorties { list-style: none; margin: 0; padding: var(--haut-sorties) 0 0; }
+.sortie { position: relative; height: var(--ligne); display: flex; align-items: center; gap: 8px; padding: 0 16px 0 12px; font-size: 13px; }
+.sortie .icone { width: 12px; text-align: center; color: var(--accent); flex: none; }
+.sortie.suite .icone { color: var(--suite); } .sortie.appel .icone { color: var(--bleu); }
+.sortie.fin .icone, .sortie.retour .icone { color: var(--doux); }
+.sortie .libelle { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sortie.fin .libelle, .sortie.retour .libelle { color: var(--doux); font-style: italic; }
+.sortie.jamais .libelle { color: var(--rouge); text-decoration: line-through; }
+.sortie .si { font: 600 10px/14px ui-monospace, monospace; color: var(--ambre); border: 1px solid currentColor; border-radius: 4px; padding: 0 3px; flex: none; }
+.port { position: absolute; right: -6px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: var(--carte); border: 2px solid var(--accent); }
+.sortie.suite .port { border-color: var(--suite); } .sortie.appel .port { border-color: var(--bleu); }
+.sortie.jamais .port { border-color: var(--rouge); }
+
+#panneau { position: fixed; top: 52px; right: 0; bottom: 0; width: min(420px, 100vw); background: var(--carte); border-left: 1px solid var(--bord); overflow-y: auto; z-index: 6; padding: 18px 20px 48px; box-shadow: -8px 0 24px rgba(0, 0, 0, .18); }
+.panneau-entete { display: flex; align-items: flex-start; gap: 10px; }
+.panneau-titres { min-width: 0; }
+#panneau h2 { margin: 4px 0 2px; font-size: 18px; line-height: 1.3; }
+#panneau h3 { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--doux); margin: 22px 0 8px; }
+#panneau p { margin: 0 0 6px; }
+.fermer { margin-left: auto; width: 32px; padding: 0; font-size: 18px; flex: none; }
+.fichier { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--doux); word-break: break-all; }
+.doux { color: var(--doux); }
+.badges-panneau { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.lien-scene { color: var(--accent); background: none; border: none; padding: 0; height: auto; font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace; cursor: pointer; }
+.lien-scene:hover { text-decoration: underline; }
+.liens-scenes { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.apercu { font-size: 13px; }
+.apercu > div { padding-top: 2px; padding-bottom: 2px; }
+.apercu .qui { font-weight: 600; color: var(--accent); margin-right: 6px; }
+.apercu .si { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ambre); }
+.apercu .action { font-size: 12px; color: var(--doux); }
+.sorties-panneau { list-style: none; padding: 0; }
+.sorties-panneau > li { margin-bottom: 12px; }
+.sorties-panneau .icone { display: inline-block; width: 18px; color: var(--accent); }
+.sorties-panneau .icone.suite { color: var(--suite); } .sorties-panneau .icone.appel { color: var(--bleu); }
+.sorties-panneau .icone.fin, .sorties-panneau .icone.retour { color: var(--doux); }
+.sorties-panneau .jamais strong { color: var(--rouge); }
+.detail { font-size: 12px; color: var(--doux); margin: 3px 0 0 18px; }
+.detail.rouge { color: var(--rouge); }
+.sorties-panneau .apercu { margin: 4px 0 0 18px; }
+.tableau { border-collapse: collapse; width: 100%; font-size: 13px; }
+.tableau td { padding: 4px 6px; border-bottom: 1px solid var(--bord); vertical-align: top; }
+.tableau td:first-child { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--doux); white-space: nowrap; width: 1%; }
+.medias { list-style: none; padding: 0; }
+.medias li { margin-bottom: 5px; }
+.problemes li { margin-bottom: 10px; }
+.etapes li { margin-bottom: 6px; }
+.route-texte { font-size: 12px; color: var(--doux); }
+
+.legende { position: fixed; left: 16px; bottom: 16px; background: var(--carte); border: 1px solid var(--bord); border-radius: 10px; padding: 10px 12px; font-size: 12px; color: var(--doux); box-shadow: var(--ombre); max-width: 360px; z-index: 4; }
+.legende ul { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px; }
+.legende li { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.legende p { margin: 0; line-height: 1.5; }
+.icone-legende { width: 36px; text-align: center; color: var(--accent); }
+.cadre-legende { display: inline-block; width: 36px; height: 12px; border: 1.5px dashed var(--rouge); border-radius: 3px; }
+.zoom { position: fixed; right: 16px; bottom: 16px; display: flex; gap: 6px; z-index: 4; }
+.zoom button { min-width: 32px; }
+.panneau-ouvert .zoom { right: calc(min(420px, 100vw) + 16px); }
+.vide { position: fixed; inset: 52px 0 0 0; display: grid; place-items: center; color: var(--doux); }
+</style>
+</head>
+<body>
+<header class="barre">
+  <div class="titre"><strong id="titre"></strong><span id="stats"></span></div>
+  <input id="recherche" type="search" placeholder="Chercher une scène  ( / )" autocomplete="off" aria-label="Chercher une scène">
+  <select id="route" aria-label="Surligner une route de test"><option value="">Routes de test</option></select>
+  <button id="bouton-avertissements" type="button">Avertissements</button>
+  <button id="bouton-legende" type="button" class="actif">Légende</button>
+</header>
+<main id="vue">
+  <div id="plan"><svg id="liens" aria-hidden="true"></svg><div id="noeuds"></div></div>
+</main>
+<div class="legende" id="legende"></div>
+<div class="zoom">
+  <button type="button" id="zoom-moins" title="Zoom arrière (−)" aria-label="Zoom arrière">−</button>
+  <button type="button" id="zoom-plus" title="Zoom avant (+)" aria-label="Zoom avant">+</button>
+  <button type="button" id="tout-afficher" title="Tout afficher (F)">Tout afficher</button>
+</div>
+<aside id="panneau" hidden></aside>
+<script>const DONNEES = {"_genere_par":"Fichier généré par tools/fiches.py depuis contenu/ : ne pas modifier à la main.","titre":"La photo (démo)","geometrie":{"largeur":300,"entete":70,"haut_sorties":4,"ligne":26},"largeur":1770,"hauteur":542,"stats":{"scenes":7,"fins":2,"etats":11,"complete":true},"langues":["fr","en"],"scenes":[{"id":"CH01_SC01","titre":"L'arrivée","lieu":"rue","moment":"nuit","fichier":"contenu/scenes/ch01/CH01_SC01.yaml","resume":"Sous la pluie, le protagoniste arrive devant l'immeuble de Léna et peut remarquer une vieille photo dans la boîte aux lettres.","notes":"","objectifs":["installer_l_ambiance","proposer_l_indice_de_la_photo"],"personnages":["Moi"],"conditions":[],"debut":true,"atteinte":true,"fin":false,"retour":false,"repliques":3,"apercu":[{"n":0,"t":"action","texte":"décor rue_nuit (fade)"},{"n":0,"t":"narration","texte":"Il pleut depuis des heures quand j'arrive enfin devant l'immeuble."},{"n":0,"t":"replique","qui":"Moi","texte":"Troisième étage… C'est ici."}],"question":null,"sorties":[{"type":"choix","libelle":"Monter directement","si":"","effets":"relation_lena +1","destination":"CH01_SC02","propose":true,"contenu":[]},{"type":"choix","libelle":"Regarder la boîte aux lettres","si":"","effets":"indice_photo = True","destination":"CH01_SC02","propose":true,"contenu":[{"n":0,"t":"narration","texte":"Une vieille photo dépasse de la fente. Un homme devant un chantier… mon père ?"}]}],"entree":[{"variable":"relation_lena","valeurs":["3"]},{"variable":"mystere","valeurs":["0"]},{"variable":"indice_photo","valeurs":["False"]}],"route":"CH01_SC01","medias":[{"nom":"rue_nuit","type":"image","usages":"décor","etat":"définitive"}],"galerie":"","traductions":[{"code":"en","total":5,"faites":5}],"avertissements":[],"h":134,"x":60,"y":60},{"id":"CH01_SC02","titre":"L'appartement de Léna","lieu":"appartement_lena","moment":"soir","fichier":"contenu/scenes/ch01/CH01_SC02.yaml","resume":"Léna accueille le protagoniste. S'il a vu la photo, il peut l'interroger ; sinon, lui faire confiance ou repartir.","notes":"","objectifs":["premiere_rencontre_avec_lena","choisir_entre_confiance_et_enquete"],"personnages":["Moi","Léna"],"conditions":[],"debut":false,"atteinte":true,"fin":false,"retour":false,"repliques":4,"apercu":[{"n":0,"t":"action","texte":"décor appartement_soir (dissolve)"},{"n":0,"t":"action","texte":"montre lena sourire, right (dissolve)"},{"n":0,"t":"replique","qui":"Léna","texte":"Je ne pensais pas que tu viendrais."},{"n":0,"t":"si","texte":"si indice_photo"},{"n":1,"t":"replique","qui":"Moi","texte":"Il y avait une photo dans ta boîte aux lettres."},{"n":1,"t":"replique","qui":"Léna","texte":"Tu as l'œil. On en reparlera."}],"question":{"n":0,"t":"replique","qui":"Léna","texte":"Alors… tu restes un peu ?"},"sorties":[{"type":"choix","libelle":"Lui faire confiance","si":"","effets":"relation_lena +2","destination":"CH01_SC03A","propose":true,"contenu":[]},{"type":"choix","libelle":"L'interroger sur la photo","si":"indice_photo","effets":"mystere +1","destination":"CH01_SC03B","propose":true,"contenu":[]},{"type":"choix","libelle":"Repartir sous la pluie","si":"","effets":"relation_lena -2","destination":"CH01_SC05","propose":true,"contenu":[{"n":0,"t":"action","texte":"retire lena (dissolve)"},{"n":0,"t":"action","texte":"pause 1.0 s"}]}],"entree":[{"variable":"relation_lena","valeurs":["3","4"]},{"variable":"mystere","valeurs":["0"]},{"variable":"indice_photo","valeurs":["False","True"]}],"route":"CH01_SC01 → « Regarder la boîte aux lettres » → CH01_SC02","medias":[{"nom":"appartement_soir","type":"image","usages":"décor, galerie","etat":"définitive"},{"nom":"lena sourire","type":"image","usages":"personnage","etat":"définitive"}],"galerie":"","traductions":[{"code":"en","total":7,"faites":7}],"avertissements":[],"h":160,"x":510,"y":60},{"id":"CH01_SC03A","titre":"La confiance","lieu":"appartement_lena","moment":"soir","fichier":"contenu/scenes/ch01/CH01_SC03A.yaml","resume":"Touchée par sa confiance, Léna se confie (scène animée).","notes":"","objectifs":["rapprochement_avec_lena"],"personnages":["Léna"],"conditions":["relation_lena >= 4"],"debut":false,"atteinte":true,"fin":false,"retour":false,"repliques":1,"apercu":[{"n":0,"t":"action","texte":"montre lena rougit"},{"n":0,"t":"replique","qui":"Léna","texte":"Merci. Ça compte pour moi, tu sais."},{"n":0,"t":"action","texte":"video videos/lena_scene_01.webm"}],"question":null,"sorties":[{"type":"suite","libelle":"suite","destination":"CH01_SC04"}],"entree":[{"variable":"relation_lena","valeurs":["5","6"]},{"variable":"mystere","valeurs":["0"]},{"variable":"indice_photo","valeurs":["False","True"]}],"route":"CH01_SC01 → « Regarder la boîte aux lettres » → CH01_SC02 → « Lui faire confiance » → CH01_SC03A","medias":[{"nom":"lena rougit","type":"image","usages":"personnage, vignette de galerie","etat":"définitive"},{"nom":"videos/lena_scene_01.webm","type":"vidéo","usages":"scène, galerie","etat":"définitive","ogv":"à jour"}],"galerie":"La confiance de Léna","traductions":[{"code":"en","total":2,"faites":2}],"avertissements":[],"h":108,"x":960,"y":60},{"id":"CH01_SC03B","titre":"L'interrogatoire","lieu":"appartement_lena","moment":"soir","fichier":"contenu/scenes/ch01/CH01_SC03B.yaml","resume":"Pressée de questions, Léna admet avoir connu le père ; un souvenir d'enfance remonte.","notes":"","objectifs":["reveler_que_lena_connait_le_pere"],"personnages":["Moi","Léna"],"conditions":["indice_photo"],"debut":false,"atteinte":true,"fin":false,"retour":false,"repliques":1,"apercu":[{"n":0,"t":"action","texte":"montre lena serieuse"},{"n":0,"t":"replique","qui":"Léna","texte":"Ton père… Oui, je l'ai connu. Bien plus que tu ne le crois."},{"n":0,"t":"action","texte":"appel CH01_SOUVENIR"},{"n":0,"t":"action","texte":"effets : mystere +1"}],"question":null,"sorties":[{"type":"appel","libelle":"appel CH01_SOUVENIR","destination":"CH01_SOUVENIR"},{"type":"suite","libelle":"suite","destination":"CH01_SC04"}],"entree":[{"variable":"relation_lena","valeurs":["3"]},{"variable":"mystere","valeurs":["1"]},{"variable":"indice_photo","valeurs":["True"]}],"route":"CH01_SC01 → « Regarder la boîte aux lettres » → CH01_SC02 → « L'interroger sur la photo » → CH01_SC03B","medias":[{"nom":"appartement_soir","type":"image","usages":"décor, galerie","etat":"définitive"},{"nom":"lena serieuse","type":"image","usages":"personnage, galerie, vignette de galerie","etat":"définitive"}],"galerie":"Le secret de Léna","traductions":[{"code":"en","total":2,"faites":2}],"avertissements":[],"h":134,"x":960,"y":204},{"id":"CH01_SC04","titre":"Fin de la démo","lieu":"appartement_lena","moment":"soir","fichier":"contenu/scenes/ch01/CH01_SC04.yaml","resume":"Bilan de la soirée selon la relation avec Léna et l'avancée de l'enquête.","notes":"","objectifs":[],"personnages":[],"conditions":[],"debut":false,"atteinte":true,"fin":true,"retour":false,"repliques":4,"apercu":[{"n":0,"t":"action","texte":"décor appartement_soir (fade)"},{"n":0,"t":"narration","texte":"{i}Fin de la démo{/i} — relation avec Léna : [relation_lena], mystère : [mystere]."},{"n":0,"t":"si","texte":"si relation_lena >= 5"},{"n":1,"t":"narration","texte":"Léna m'a fait confiance ce soir."},{"n":0,"t":"si","texte":"sinon si mystere >= 2"},{"n":1,"t":"narration","texte":"Je repars avec plus de questions que de réponses."},{"n":0,"t":"si","texte":"sinon"},{"n":1,"t":"narration","texte":"La soirée s'achève sur un silence."}],"question":null,"sorties":[{"type":"fin","libelle":"fin de partie"}],"entree":[{"variable":"relation_lena","valeurs":["3","5","6"]},{"variable":"mystere","valeurs":["0","2"]},{"variable":"indice_photo","valeurs":["False","True"]}],"route":"CH01_SC01 → « Regarder la boîte aux lettres » → CH01_SC02 → « L'interroger sur la photo » → CH01_SC03B → suite → CH01_SC04","medias":[{"nom":"appartement_soir","type":"image","usages":"décor, galerie","etat":"définitive"}],"galerie":"","traductions":[{"code":"en","total":4,"faites":4}],"avertissements":[],"h":108,"x":1410,"y":132},{"id":"CH01_SC05","titre":"Fin solitaire","lieu":"rue","moment":"nuit","fichier":"contenu/scenes/ch01/CH01_SC05.yaml","resume":"Le protagoniste repart sans avoir vraiment parlé à Léna.","notes":"","objectifs":[],"personnages":[],"conditions":[],"debut":false,"atteinte":true,"fin":true,"retour":false,"repliques":1,"apercu":[{"n":0,"t":"action","texte":"décor rue_nuit (fade)"},{"n":0,"t":"narration","texte":"Je redescends l'escalier. La porte se referme derrière moi."}],"question":null,"sorties":[{"type":"fin","libelle":"fin de partie"}],"entree":[{"variable":"relation_lena","valeurs":["1","2"]},{"variable":"mystere","valeurs":["0"]},{"variable":"indice_photo","valeurs":["False","True"]}],"route":"CH01_SC01 → « Regarder la boîte aux lettres » → CH01_SC02 → « Repartir sous la pluie » → CH01_SC05","medias":[{"nom":"rue_nuit","type":"image","usages":"décor","etat":"définitive"}],"galerie":"","traductions":[{"code":"en","total":1,"faites":1}],"avertissements":[],"h":108,"x":960,"y":374},{"id":"CH01_SOUVENIR","titre":"Souvenir du père","lieu":"","moment":"","fichier":"contenu/scenes/ch01/CH01_SOUVENIR.yaml","resume":"Flash d'enfance sur le chantier du père. Scène appelée, réutilisable depuis plusieurs routes.","notes":"","objectifs":[],"personnages":[],"conditions":[],"debut":false,"atteinte":true,"fin":false,"retour":true,"repliques":1,"apercu":[{"n":0,"t":"narration","texte":"Un souvenir remonte : l'odeur du plâtre, et la voix de mon père sur le chantier."}],"question":null,"sorties":[{"type":"retour","libelle":"retour à la scène appelante"}],"entree":[{"variable":"relation_lena","valeurs":["3"]},{"variable":"mystere","valeurs":["1"]},{"variable":"indice_photo","valeurs":["True"]}],"route":"CH01_SC01 → « Regarder la boîte aux lettres » → CH01_SC02 → « L'interroger sur la photo » → CH01_SC03B → appel → CH01_SOUVENIR","medias":[],"galerie":"","traductions":[{"code":"en","total":1,"faites":1}],"avertissements":[],"h":108,"x":1410,"y":276}],"aretes":[{"de":"CH01_SC01","vers":"CH01_SC02","sortie":0,"type":"choix","libelle":"Monter directement","propose":true,"arriere":false},{"de":"CH01_SC01","vers":"CH01_SC02","sortie":1,"type":"choix","libelle":"Regarder la boîte aux lettres","propose":true,"arriere":false},{"de":"CH01_SC02","vers":"CH01_SC03A","sortie":0,"type":"choix","libelle":"Lui faire confiance","propose":true,"arriere":false},{"de":"CH01_SC02","vers":"CH01_SC03B","sortie":1,"type":"choix","libelle":"L'interroger sur la photo","propose":true,"arriere":false},{"de":"CH01_SC02","vers":"CH01_SC05","sortie":2,"type":"choix","libelle":"Repartir sous la pluie","propose":true,"arriere":false},{"de":"CH01_SC03A","vers":"CH01_SC04","sortie":0,"type":"suite","libelle":"suite","propose":true,"arriere":false},{"de":"CH01_SC03B","vers":"CH01_SOUVENIR","sortie":0,"type":"appel","libelle":"appel CH01_SOUVENIR","propose":true,"arriere":false},{"de":"CH01_SC03B","vers":"CH01_SC04","sortie":1,"type":"suite","libelle":"suite","propose":true,"arriere":false}],"routes":[{"nom":"route_01","fin":"CH01_SC04","choix":["Monter directement","Lui faire confiance"],"scenes":["CH01_SC01","CH01_SC02","CH01_SC03A","CH01_SC04"],"etapes":[{"de":"CH01_SC01","vers":"CH01_SC02","choix":"Monter directement"},{"de":"CH01_SC02","vers":"CH01_SC03A","choix":"Lui faire confiance"},{"de":"CH01_SC03A","vers":"CH01_SC04","choix":null}],"etat":{"relation_lena":"6","mystere":"0","indice_photo":"False"}},{"nom":"route_02","fin":"CH01_SC05","choix":["Regarder la boîte aux lettres","Repartir sous la pluie"],"scenes":["CH01_SC01","CH01_SC02","CH01_SC05"],"etapes":[{"de":"CH01_SC01","vers":"CH01_SC02","choix":"Regarder la boîte aux lettres"},{"de":"CH01_SC02","vers":"CH01_SC05","choix":"Repartir sous la pluie"}],"etat":{"relation_lena":"1","mystere":"0","indice_photo":"True"}},{"nom":"route_03","fin":"CH01_SC04","choix":["Regarder la boîte aux lettres","L'interroger sur la photo"],"scenes":["CH01_SC01","CH01_SC02","CH01_SC03B","CH01_SC04"],"etapes":[{"de":"CH01_SC01","vers":"CH01_SC02","choix":"Regarder la boîte aux lettres"},{"de":"CH01_SC02","vers":"CH01_SC03B","choix":"L'interroger sur la photo"},{"de":"CH01_SC03B","vers":"CH01_SC04","choix":null}],"etat":{"relation_lena":"3","mystere":"2","indice_photo":"True"}}],"problemes":[]};</script>
+<script>
+"use strict";
+(function () {
+  const D = DONNEES;
+  if (!D) {
+    document.body.textContent = "Modèle du graphe : lancez .venv/bin/python tools/fiches.py graphe";
+    return;
+  }
+  const G = D.geometrie;
+  const $ = (id) => document.getElementById(id);
+  const vue = $("vue"), plan = $("plan"), svg = $("liens"), calque = $("noeuds");
+  const panneau = $("panneau"), recherche = $("recherche"), menuRoutes = $("route");
+  const SVG = "http://www.w3.org/2000/svg";
+  const ICONES = {choix: "◆", suite: "→", appel: "↪", fin: "■", retour: "↩"};
+  const COULEUR_ETAT = {"définitive": "vert", "provisoire": "gris", "manquante": "rouge"};
+
+  // --- Outils -----------------------------------------------------------------------------
+
+  function el(tag, attributs, ...enfants) {
+    const noeud = document.createElement(tag);
+    for (const [cle, valeur] of Object.entries(attributs || {})) {
+      if (valeur === null || valeur === undefined || valeur === false) continue;
+      if (cle === "class") noeud.className = valeur;
+      else if (cle === "style") Object.assign(noeud.style, valeur);
+      else if (cle.startsWith("on")) noeud.addEventListener(cle.slice(2), valeur);
+      else noeud.setAttribute(cle, valeur === true ? "" : String(valeur));
+    }
+    for (const enfant of enfants.flat(Infinity)) {
+      if (enfant === null || enfant === undefined || enfant === false || enfant === "") continue;
+      noeud.append(enfant instanceof Node ? enfant : String(enfant));
+    }
+    return noeud;
+  }
+
+  function svgEl(tag, attributs) {
+    const noeud = document.createElementNS(SVG, tag);
+    for (const [cle, valeur] of Object.entries(attributs)) noeud.setAttribute(cle, String(valeur));
+    return noeud;
+  }
+
+  const badge = (texte, couleur, titre) => el("span", {class: "badge " + couleur, title: titre}, texte);
+  const pluriel = (n, mot) => `${n} ${mot}${n > 1 ? "s" : ""}`;
+
+  // Géométrie des scènes, fixée par tools/fiches.py (positions des liens calculées là-bas).
+  for (const cle of ["largeur", "entete", "haut_sorties", "ligne"]) {
+    document.documentElement.style.setProperty("--" + cle.replace("_", "-"), G[cle] + "px");
+  }
+
+  // --- Barre du haut ------------------------------------------------------------------------
+
+  const st = D.stats;
+  $("titre").textContent = D.titre;
+  $("stats").textContent = [
+    pluriel(st.scenes, "scène"), pluriel(st.fins, "fin"),
+    `${st.etats} état${st.etats > 1 ? "s" : ""} exploré${st.etats > 1 ? "s" : ""}`,
+    st.complete ? null : "exploration partielle",
+    D.langues.length > 1 ? "langues : " + D.langues.map((l) => l.toUpperCase()).join(", ") : null,
+  ].filter(Boolean).join(" · ");
+  $("bouton-avertissements").textContent = `Avertissements (${D.problemes.length})`;
+
+  // --- Scènes et liens ---------------------------------------------------------------------
+
+  const scenes = new Map(D.scenes.map((s) => [s.id, s]));
+  const noeuds = new Map();
+  const liens = [];
+
+  plan.style.width = D.largeur + "px";
+  plan.style.height = D.hauteur + "px";
+  svg.setAttribute("width", D.largeur);
+  svg.setAttribute("height", D.hauteur);
+  const defs = svgEl("defs", {});
+  for (const type of ["choix", "suite", "appel", "jamais"]) {
+    const pointe = svgEl("marker", {id: "pointe-" + type, viewBox: "0 0 10 10", refX: 9, refY: 5,
+      markerWidth: 10, markerHeight: 10, markerUnits: "userSpaceOnUse", orient: "auto"});
+    pointe.append(svgEl("path", {d: "M0,1 L10,5 L0,9 z", class: "pointe " + type}));
+    defs.append(pointe);
+  }
+  svg.append(defs);
+
+  function ligneSortie(sortie) {
+    const jamais = sortie.propose === false;
+    const details = [sortie.si && "si " + sortie.si, sortie.effets && "effets : " + sortie.effets,
+      sortie.destination && "→ " + sortie.destination, jamais && "jamais proposé : sa condition est fausse sur toutes les routes"];
+    return el("li", {class: ["sortie", sortie.type, jamais && "jamais"].filter(Boolean).join(" "),
+      title: [sortie.libelle, ...details].filter(Boolean).join("\n")},
+      el("span", {class: "icone"}, sortie.si ? "◇" : (ICONES[sortie.type] || "•")),
+      el("span", {class: "libelle"}, sortie.libelle),
+      sortie.si ? el("span", {class: "si"}, "si") : null,
+      sortie.destination ? el("span", {class: "port"}) : null);
+  }
+
+  for (const s of D.scenes) {
+    const badges = [];
+    if (s.debut) badges.push(badge("début", "vert"));
+    if (!s.atteinte) badges.push(badge("jamais atteinte", "rouge", "Aucune route ne mène à cette scène depuis le début"));
+    if (s.repliques === 0) badges.push(badge("squelette", "gris", "Aucune réplique écrite"));
+    if (s.avertissements.length) badges.push(badge("⚠ " + s.avertissements.length, "ambre", s.avertissements.join("\n")));
+    const manquants = s.medias.filter((m) => m.etat === "manquante").length;
+    if (manquants) badges.push(badge(`${pluriel(manquants, "média")} manquant${manquants > 1 ? "s" : ""}`, "rouge"));
+    for (const t of s.traductions) {
+      if (t.faites < t.total) badges.push(badge(`${t.code.toUpperCase()} ${t.faites}/${t.total}`, "ambre", "Traduction incomplète"));
+    }
+    if (s.galerie) badges.push(badge("galerie", "bleu", s.galerie));
+    const div = el("div", {
+      class: ["noeud", s.debut && "debut", !s.atteinte && "non-atteinte"].filter(Boolean).join(" "),
+      role: "button", tabindex: 0, "aria-label": `${s.id} ${s.titre}`,
+      style: {left: s.x + "px", top: s.y + "px", height: s.h + "px"},
+    },
+      el("div", {class: "entete"},
+        el("div", {class: "ligne-id"}, el("span", {class: "sid"}, s.id), el("span", {class: "badges"}, badges)),
+        el("div", {class: "titre-scene", title: s.titre}, s.titre || "(sans titre)"),
+        el("div", {class: "meta"}, [s.lieu, s.moment].filter(Boolean).join(" · ") || " ")),
+      el("ul", {class: "sorties"}, s.sorties.map(ligneSortie)));
+    div.addEventListener("click", (e) => { e.stopPropagation(); selectionner(s.id); });
+    div.addEventListener("dblclick", (e) => { e.stopPropagation(); centrer(s.id, 1); });
+    div.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectionner(s.id, true); }
+    });
+    div.addEventListener("mouseenter", () => survoler(s.id, true));
+    div.addEventListener("mouseleave", () => survoler(s.id, false));
+    calque.append(div);
+    noeuds.set(s.id, div);
+  }
+
+  function trace(arete) {
+    const de = scenes.get(arete.de), vers = scenes.get(arete.vers);
+    const sx = de.x + G.largeur, sy = de.y + G.entete + G.haut_sorties + arete.sortie * G.ligne + G.ligne / 2;
+    const tx = vers.x - 2, ty = vers.y + G.entete / 2;
+    if (tx - sx > 20) {
+      const dx = Math.max(50, (tx - sx) / 2);
+      return `M${sx},${sy} C${sx + dx},${sy} ${tx - dx},${ty} ${tx},${ty}`;
+    }
+    // Retour en arrière, ou même colonne : la courbe passe au-dessus des deux scènes.
+    const haut = Math.min(de.y, vers.y) - 45, dx = 70, milieu = (sx + tx) / 2;
+    return `M${sx},${sy} C${sx + dx},${sy} ${sx + dx},${haut} ${milieu},${haut} S${tx - dx},${ty} ${tx},${ty}`;
+  }
+
+  for (const arete of D.aretes) {
+    const type = arete.propose === false ? "jamais" : arete.type;
+    const chemin = svgEl("path", {d: trace(arete), class: `lien ${type}`, "marker-end": `url(#pointe-${type})`});
+    svg.append(chemin);
+    liens.push({arete, chemin});
+  }
+
+  function survoler(id, actif) {
+    for (const {arete, chemin} of liens) {
+      if (arete.de === id || arete.vers === id) chemin.classList.toggle("survol", actif);
+    }
+  }
+
+  // --- Sélection, route, recherche ----------------------------------------------------------
+
+  let choisi = null, routeActive = null, trouves = null;
+
+  function liensDeRoute(route) {
+    const indices = new Set();
+    for (const etape of route.etapes) {
+      const i = liens.findIndex(({arete}) => arete.de === etape.de && arete.vers === etape.vers
+        && (etape.choix === null ? arete.type === "suite" : arete.libelle === etape.choix));
+      if (i >= 0) indices.add(i);
+    }
+    return indices;
+  }
+
+  function miseAJour() {
+    let visibles = null, actifs = null;
+    if (routeActive) {
+      visibles = new Set(routeActive.scenes);
+      actifs = liensDeRoute(routeActive);
+    } else if (choisi) {
+      visibles = new Set([choisi]);
+      actifs = new Set();
+      liens.forEach(({arete}, i) => {
+        if (arete.de === choisi || arete.vers === choisi) {
+          actifs.add(i);
+          visibles.add(arete.de);
+          visibles.add(arete.vers);
+        }
+      });
+    } else if (trouves) {
+      visibles = trouves;
+      actifs = new Set();
+    }
+    for (const [id, div] of noeuds) {
+      div.classList.toggle("attenue", visibles !== null && !visibles.has(id));
+      div.classList.toggle("choisi", id === choisi);
+      div.classList.toggle("sur-route", routeActive !== null && visibles.has(id));
+      div.classList.toggle("trouve", trouves !== null && trouves.has(id));
+    }
+    liens.forEach(({chemin}, i) => {
+      chemin.classList.toggle("attenue", actifs !== null && !actifs.has(i));
+      chemin.classList.toggle("actif", actifs !== null && actifs.has(i));
+    });
+  }
+
+  function selectionner(id, centrerVue) {
+    const scene = scenes.get(id);
+    if (!scene) return;
+    choisi = id;
+    routeActive = null;
+    menuRoutes.value = "";
+    afficherScene(scene);
+    miseAJour();
+    if (centrerVue) centrer(id);
+  }
+
+  function toutDeselectionner() {
+    choisi = null;
+    routeActive = null;
+    menuRoutes.value = "";
+    fermerPanneau();
+    miseAJour();
+  }
+
+  for (const route of D.routes) {
+    menuRoutes.append(el("option", {value: route.nom},
+      `${route.nom} → ${route.fin}${route.choix.length ? " : " + route.choix.join(" · ") : ""}`));
+  }
+  menuRoutes.disabled = D.routes.length === 0;
+  menuRoutes.addEventListener("change", () => {
+    const route = D.routes.find((r) => r.nom === menuRoutes.value);
+    if (!route) { toutDeselectionner(); return; }
+    choisi = null;
+    routeActive = route;
+    afficherRoute(route);
+    miseAJour();
+    cadrer(route.scenes);
+  });
+
+  recherche.addEventListener("input", () => {
+    const q = recherche.value.trim().toLowerCase();
+    trouves = q ? new Set(D.scenes.filter((s) => [s.id, s.titre, s.lieu, s.moment, s.resume]
+      .some((v) => (v || "").toLowerCase().includes(q))).map((s) => s.id)) : null;
+    miseAJour();
+  });
+  recherche.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && trouves && trouves.size) selectionner(trouves.values().next().value, true);
+  });
+
+  // --- Panneau de détails -------------------------------------------------------------------
+
+  function ouvrirPanneau(contenu) {
+    panneau.replaceChildren(...contenu.flat().filter(Boolean));
+    panneau.hidden = false;
+    panneau.scrollTop = 0;
+    document.body.classList.add("panneau-ouvert");
+  }
+
+  function fermerPanneau() {
+    panneau.hidden = true;
+    document.body.classList.remove("panneau-ouvert");
+  }
+
+  const section = (titre, contenu) => (contenu ? el("section", {}, el("h3", {}, titre), contenu) : null);
+
+  const lienScene = (id) => el("button", {type: "button", class: "lien-scene", title: (scenes.get(id) || {}).titre || "",
+    onclick: () => selectionner(id, true)}, id);
+
+  function entetePanneau(surtitre, titre, detail) {
+    return el("div", {class: "panneau-entete"},
+      el("div", {class: "panneau-titres"}, el("div", {class: "sid"}, surtitre), el("h2", {}, titre),
+        detail ? el("div", {class: "fichier"}, detail) : null),
+      el("button", {type: "button", class: "fermer", title: "Fermer (Échap)", "aria-label": "Fermer", onclick: toutDeselectionner}, "×"));
+  }
+
+  function tableau(lignes) {
+    return lignes.length ? el("table", {class: "tableau"}, lignes.map(([cle, valeur]) => el("tr", {}, el("td", {}, cle), el("td", {}, valeur)))) : null;
+  }
+
+  function apercu(lignes) {
+    return el("div", {class: "apercu"}, lignes.map((ligne) => el("div", {class: ligne.t, style: {paddingLeft: ligne.n * 16 + "px"}},
+      ligne.t === "replique" ? [el("span", {class: "qui"}, ligne.qui), ligne.texte] : ligne.texte)));
+  }
+
+  function sortiePanneau(sortie) {
+    const jamais = sortie.propose === false;
+    return el("li", {class: jamais ? "jamais" : null},
+      el("span", {class: "icone " + sortie.type}, sortie.si ? "◇" : (ICONES[sortie.type] || "•")),
+      el("strong", {}, sortie.libelle),
+      sortie.destination ? [" → ", lienScene(sortie.destination)] : null,
+      sortie.si ? el("div", {class: "detail"}, "si ", el("code", {}, sortie.si)) : null,
+      sortie.effets ? el("div", {class: "detail"}, "effets : ", el("code", {}, sortie.effets)) : null,
+      jamais ? el("div", {class: "detail rouge"}, "Jamais proposé : sa condition est fausse sur toutes les routes.") : null,
+      sortie.contenu && sortie.contenu.length ? apercu(sortie.contenu) : null);
+  }
+
+  function afficherScene(s) {
+    const origines = [...new Set(liens.filter(({arete}) => arete.vers === s.id).map(({arete}) => arete.de))];
+    const badges = [s.debut && badge("début", "vert"), !s.atteinte && badge("jamais atteinte", "rouge"),
+      s.fin && badge("fin de partie", "gris"), s.retour && badge("scène appelée", "bleu"),
+      s.galerie && badge("galerie : " + s.galerie, "bleu")].filter(Boolean);
+    ouvrirPanneau([
+      entetePanneau(s.id, s.titre || "(sans titre)", s.fichier),
+      badges.length ? el("div", {class: "badges-panneau"}, badges) : null,
+      section("Résumé", s.resume && el("p", {}, s.resume)),
+      section("Lieu", (s.lieu || s.moment) && el("p", {}, [s.lieu, s.moment].filter(Boolean).join(" · "))),
+      section("Objectif narratif", s.objectifs.length > 0 && el("ul", {}, s.objectifs.map((o) => el("li", {}, o)))),
+      section("Personnages", s.personnages.length > 0 && el("p", {}, s.personnages.join(", "))),
+      section("Conditions d'entrée", s.conditions.length > 0 && el("ul", {}, s.conditions.map((c) => el("li", {}, el("code", {}, c))))),
+      section("Arrive depuis", origines.length ? el("p", {class: "liens-scenes"}, origines.map(lienScene))
+        : el("p", {class: "doux"}, s.debut ? "Début du jeu." : "Aucune scène n'y mène.")),
+      section("État possible à l'entrée", s.atteinte ? tableau(s.entree.map((v) => [v.variable, v.valeurs.join(", ")]))
+        : el("p", {class: "doux"}, "Scène jamais atteinte depuis le début.")),
+      section("Contenu", s.apercu.length ? apercu(s.apercu) : el("p", {class: "doux"}, "Pas encore de contenu : fiche squelette.")),
+      section(s.question ? "Menu" : "Fin de scène", el("div", {}, s.question ? apercu([s.question]) : null,
+        el("ul", {class: "sorties-panneau"}, s.sorties.map(sortiePanneau)))),
+      section("Médias", s.medias.length > 0 && el("ul", {class: "medias"}, s.medias.map((m) => el("li", {},
+        badge(m.etat, COULEUR_ETAT[m.etat] || "gris"), " ", el("code", {}, m.nom),
+        el("span", {class: "doux"}, ` ${m.type}, ${m.usages}${m.ogv ? ", OGV " + m.ogv : ""}`))))),
+      section("Traductions", s.traductions.length > 0 && el("ul", {}, s.traductions.map((t) => el("li", {},
+        `${t.code.toUpperCase()} : ${t.faites}/${t.total}`,
+        t.faites < t.total ? el("span", {class: "doux"}, " — à compléter (tools/fiches.py traduire)") : " ✓")))),
+      section("Avertissements", s.avertissements.length > 0 && el("ul", {class: "problemes"}, s.avertissements.map((a) => el("li", {}, a)))),
+      section("Notes", s.notes && el("p", {}, s.notes)),
+      section("Exemple de route", s.route && el("p", {class: "route-texte"}, s.route)),
+    ]);
+  }
+
+  function afficherRoute(route) {
+    ouvrirPanneau([
+      entetePanneau("Route de test", route.nom, "fin : " + route.fin),
+      el("p", {class: "doux", style: {marginTop: "10px"}}, "Rejouée par les tests Godot et Ren'Py, dans chaque langue."),
+      section("Étapes", route.etapes.length
+        ? el("ol", {class: "etapes"}, route.etapes.map((e) => el("li", {}, lienScene(e.de),
+          e.choix !== null ? ` « ${e.choix} » → ` : el("span", {class: "doux"}, " suite → "), lienScene(e.vers))))
+        : el("p", {}, "Fin directe, sans choix.")),
+      section("État final", tableau(Object.entries(route.etat))),
+    ]);
+  }
+
+  $("bouton-avertissements").addEventListener("click", () => {
+    choisi = null;
+    routeActive = null;
+    menuRoutes.value = "";
+    miseAJour();
+    ouvrirPanneau([
+      entetePanneau("tools/fiches.py verifier", "Avertissements", null),
+      D.problemes.length
+        ? el("ul", {class: "problemes"}, D.problemes.map((p) => el("li", {},
+          p.scene ? lienScene(p.scene) : el("span", {class: "fichier"}, p.ou), el("div", {}, p.message))))
+        : el("p", {class: "doux", style: {marginTop: "14px"}}, "Aucun avertissement."),
+    ]);
+  });
+
+  // --- Légende --------------------------------------------------------------------------------
+
+  function echantillon(type) {
+    const dessin = svgEl("svg", {width: 36, height: 10, "aria-hidden": "true"});
+    dessin.append(svgEl("path", {d: "M1,5 L35,5", class: "lien " + type}));
+    return dessin;
+  }
+  $("legende").append(
+    el("ul", {},
+      el("li", {}, echantillon("choix"), "choix"),
+      el("li", {}, echantillon("jamais"), "choix jamais proposé"),
+      el("li", {}, echantillon("suite"), "suite"),
+      el("li", {}, echantillon("appel"), "appel, puis retour"),
+      el("li", {}, el("span", {class: "icone-legende"}, "◇"), "choix sous condition"),
+      el("li", {}, el("span", {class: "cadre-legende"}), "scène jamais atteinte")),
+    el("p", {}, "Glisser : déplacer · Ctrl + molette ou pincer : zoom · double-clic : centrer · F : tout afficher · / : chercher · Échap : fermer"));
+  $("bouton-legende").addEventListener("click", (e) => {
+    const legende = $("legende");
+    legende.hidden = !legende.hidden;
+    e.currentTarget.classList.toggle("actif", !legende.hidden);
+  });
+
+  // --- Déplacement et zoom ----------------------------------------------------------------
+
+  let tx = 0, ty = 0, k = 1;
+
+  function appliquer() {
+    plan.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
+    vue.style.backgroundPosition = `${tx}px ${ty}px`;
+    vue.style.backgroundSize = `${22 * k}px ${22 * k}px`;
+  }
+
+  const largeurLibre = () => vue.clientWidth - (panneau.hidden ? 0 : panneau.offsetWidth);
+
+  function zoomer(facteur, cx, cy) {
+    const nk = Math.min(2.5, Math.max(0.08, k * facteur));
+    if (cx === undefined) { cx = largeurLibre() / 2; cy = vue.clientHeight / 2; }
+    tx = cx - (cx - tx) * nk / k;
+    ty = cy - (cy - ty) * nk / k;
+    k = nk;
+    appliquer();
+  }
+
+  function cadrer(ids) {
+    const liste = ids ? ids.map((id) => scenes.get(id)).filter(Boolean) : D.scenes;
+    if (!liste.length) return;
+    const x0 = Math.min(...liste.map((s) => s.x)) - 40, y0 = Math.min(...liste.map((s) => s.y)) - 60;
+    const x1 = Math.max(...liste.map((s) => s.x + G.largeur)) + 40, y1 = Math.max(...liste.map((s) => s.y + s.h)) + 40;
+    const largeur = largeurLibre(), hauteur = vue.clientHeight;
+    k = Math.max(0.08, Math.min(1.2, largeur / (x1 - x0), hauteur / (y1 - y0)));
+    tx = (largeur - (x1 - x0) * k) / 2 - x0 * k;
+    ty = (hauteur - (y1 - y0) * k) / 2 - y0 * k;
+    appliquer();
+  }
+
+  function centrer(id, nk) {
+    const s = scenes.get(id);
+    if (!s) return;
+    if (nk) k = nk;
+    tx = largeurLibre() / 2 - (s.x + G.largeur / 2) * k;
+    ty = vue.clientHeight / 2 - (s.y + s.h / 2) * k;
+    appliquer();
+  }
+
+  vue.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const echelle = e.deltaMode === 1 ? 16 : 1;
+    if (e.ctrlKey || e.metaKey) {
+      const r = vue.getBoundingClientRect();
+      const delta = Math.max(-60, Math.min(60, e.deltaY * echelle));
+      zoomer(Math.exp(-delta * 0.008), e.clientX - r.left, e.clientY - r.top);
+    } else {
+      tx -= e.deltaX * echelle;
+      ty -= e.deltaY * echelle;
+      appliquer();
+    }
+  }, {passive: false});
+
+  let glisse = null;
+  vue.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || e.target.closest(".noeud")) return;
+    glisse = {x: e.clientX, y: e.clientY, tx, ty, bouge: false};
+    vue.setPointerCapture(e.pointerId);
+  });
+  vue.addEventListener("pointermove", (e) => {
+    if (!glisse) return;
+    const dx = e.clientX - glisse.x, dy = e.clientY - glisse.y;
+    if (!glisse.bouge && Math.hypot(dx, dy) < 4) return;
+    glisse.bouge = true;
+    vue.classList.add("glisse");
+    tx = glisse.tx + dx;
+    ty = glisse.ty + dy;
+    appliquer();
+  });
+  vue.addEventListener("pointerup", () => {
+    if (glisse && !glisse.bouge) toutDeselectionner();
+    glisse = null;
+    vue.classList.remove("glisse");
+  });
+
+  $("zoom-plus").addEventListener("click", () => zoomer(1.25));
+  $("zoom-moins").addEventListener("click", () => zoomer(0.8));
+  $("tout-afficher").addEventListener("click", () => cadrer());
+
+  document.addEventListener("keydown", (e) => {
+    if (e.target.matches("input, select, textarea")) {
+      if (e.key === "Escape") {
+        if (e.target === recherche && recherche.value) {
+          recherche.value = "";
+          recherche.dispatchEvent(new Event("input"));
+        }
+        e.target.blur();
+      }
+      return;
+    }
+    if (e.key === "Escape") toutDeselectionner();
+    else if (e.key === "f" || e.key === "F") cadrer();
+    else if (e.key === "/") { e.preventDefault(); recherche.focus(); }
+    else if (e.key === "+" || e.key === "=") zoomer(1.25);
+    else if (e.key === "-") zoomer(0.8);
+  });
+
+  // --- Démarrage : tout afficher ; une ancre (#CH01_SC02, #route_01, #avertissements) ouvre
+  // directement une scène, une route ou les avertissements.
+
+  if (!D.scenes.length) calque.append(el("div", {class: "vide"}, "Aucune scène."));
+  appliquer();
+  cadrer();
+  if (k < 0.5) {
+    // Grand graphe : tout afficher le rendrait illisible, on part de la scène de début.
+    const debut = D.scenes.find((s) => s.debut) || D.scenes[0];
+    k = 0.8;
+    tx = 40 - (debut.x - 20) * k;
+    ty = vue.clientHeight / 2 - (debut.y + debut.h / 2) * k;
+    appliquer();
+  }
+  const ancre = decodeURIComponent(location.hash.slice(1));
+  if (scenes.has(ancre)) selectionner(ancre, true);
+  else if (D.routes.some((r) => r.nom === ancre)) {
+    menuRoutes.value = ancre;
+    menuRoutes.dispatchEvent(new Event("change"));
+  } else if (ancre === "avertissements") $("bouton-avertissements").click();
+})();
+</script>
+</body>
+</html>

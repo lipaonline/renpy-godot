@@ -7,7 +7,7 @@ sous-ensemble commun Ren'Py / Godot. Format : contenu/LISEZMOI.md.
                     parcours (Godot et Ren'Py) ; fait relire le script par Godot
   provisoires       images et vidéos provisoires pour tout ce qui manque encore
   production        images et vidéos à produire → contenu/production.md
-  graphe            graphe des routes (Mermaid) → contenu/graphe.md
+  graphe [--ouvrir] graphe des routes → contenu/graphe.html (interactif) et graphe.md (Mermaid)
   contexte SCENE    paquet de contexte pour écrire ou réviser une scène
   traduire [LANGUE] met à jour contenu/traductions/<langue>.yaml (répliques et textes à traduire)
 
@@ -19,11 +19,13 @@ import argparse
 import ast
 import difflib
 import hashlib
+import html
 import json
 import re
 import shutil
 import subprocess
 import sys
+import webbrowser
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -42,6 +44,12 @@ FICHIER_LANGUES = "game/langues.json"
 DOSSIER_TRADUCTIONS = "contenu/traductions"
 DOSSIER_PROVISOIRES = "game/images/provisoires"
 LISTE_VIDEOS_PROVISOIRES = "game/videos/provisoires.txt"
+FICHIER_GRAPHE_HTML = "contenu/graphe.html"
+MODELE_GRAPHE_HTML = Path(__file__).resolve().parent / "graphe_modele.html"
+## Géométrie du graphe HTML, en pixels : les positions des scènes et des liens sont
+## calculées ici, la page (tools/graphe_modele.html) reprend ces valeurs.
+GRAPHE = {"largeur": 300, "entete": 70, "haut_sorties": 4, "ligne": 26, "bas": 8,
+          "ecart_colonnes": 150, "ecart_noeuds": 36, "marge": 60}
 ROUTES_MAX = 12
 ## Âge minimum des personnages, réglable dans la bible par « age_minimum ».
 AGE_MINIMUM = 18
@@ -651,7 +659,7 @@ class Explorateur:
         etats = self.ex.fins.setdefault(sid, [])
         if etat not in etats:
             etats.append(etat)
-            self.ex.fins_routes.append({"fin": sid, "etat": etat, "choix": choix})
+            self.ex.fins_routes.append({"fin": sid, "etat": etat, "choix": choix, "route": route})
         return []
 
     def _executer(self, elements, etat, sid, route, pile):
@@ -1561,17 +1569,24 @@ def _etat_video(racine: Path, relatif: str, provisoires: dict) -> tuple[str, str
     return etat_webm, etat_ogv
 
 
-def production(projet: Projet) -> tuple[str, str]:
-    """Renvoie (markdown, résumé) de la liste des images et vidéos à produire."""
+def _etats_medias(projet: Projet) -> tuple[dict, dict, dict, dict]:
+    """Images et vidéos utilisées, avec leur état : (images, vidéos, {image : (état, fichier)},
+    {vidéo : (état du WebM, état de l'OGV)})."""
     images, videos = inventaire(projet)
-    definitives, provisoires = _index_images(projet.racine)
+    definitives, provisoires_ = _index_images(projet.racine)
     liste_provisoires = _videos_provisoires(projet.racine)
     etats_images = {}
     for nom in images:
         cle = nom.lower()
         etats_images[nom] = ("définitive", definitives[cle]) if cle in definitives else \
-            ("provisoire", provisoires[cle]) if cle in provisoires else ("manquante", "")
+            ("provisoire", provisoires_[cle]) if cle in provisoires_ else ("manquante", "")
     etats_videos = {relatif: _etat_video(projet.racine, relatif, liste_provisoires) for relatif in videos}
+    return images, videos, etats_images, etats_videos
+
+
+def production(projet: Projet) -> tuple[str, str]:
+    """Renvoie (markdown, résumé) de la liste des images et vidéos à produire."""
+    images, videos, etats_images, etats_videos = _etats_medias(projet)
 
     def compter(etats, valeur):
         return sum(1 for etat in etats if etat == valeur)
@@ -1741,6 +1756,264 @@ def graphe(projet: Projet, exploration: Exploration | None) -> str:
     return ("# Graphe des routes\n\nGénéré par `tools/fiches.py graphe`. Formes : rectangle = scène, "
             "ovale = fin, double cadre = scène appelée ; pointillés = appel.\n\n```mermaid\n"
             + "\n".join(lignes) + "\n```\n")
+
+
+def graphe_html(projet: Projet, exploration: Exploration, rapport: Rapport) -> str:
+    """Graphe interactif des routes (contenu/graphe.html) : une page autonome, sans
+    dépendance, à ouvrir dans un navigateur. Modèle : tools/graphe_modele.html."""
+    donnees = donnees_graphe(projet, exploration, rapport)
+    texte = json.dumps(donnees, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    modele = MODELE_GRAPHE_HTML.read_text(encoding="utf-8")
+    return modele.replace("{{TITRE}}", html.escape(donnees["titre"])).replace("/*DONNEES*/null", texte)
+
+
+def donnees_graphe(projet: Projet, exploration: Exploration, rapport: Rapport) -> dict:
+    """Données du graphe HTML : scènes avec leur position, liens, routes de test et
+    avertissements de verifier."""
+    debut = projet.bible.get("debut")
+    images, videos, etats_images, etats_videos = _etats_medias(projet)
+    repliques_scene: dict = {}
+    for replique in repliques(projet):
+        repliques_scene.setdefault(replique.sid, []).append(replique)
+    traductions = {code: traductions_de(projet, code) for code in projet.langues_cibles}
+    problemes = [_probleme(projet, message) for message in rapport.erreurs + rapport.avertissements]
+    scenes, aretes = [], []
+    for sid in projet.ordre():
+        fiche = projet.scenes[sid]
+        sorties = _sorties(projet, sid, exploration)
+        for rang, sortie in enumerate(sorties):
+            if sortie.get("destination"):
+                aretes.append({"de": sid, "vers": sortie["destination"], "sortie": rang, "type": sortie["type"],
+                               "libelle": sortie["libelle"], "propose": sortie.get("propose", True)})
+        question, options = options_de(fiche)
+        lignes = repliques_scene.get(sid, [])
+        textes_scene = [str(option["libelle"]) for option in options]
+        if fiche.get("galerie"):
+            textes_scene.append(_titre_galerie(sid, fiche))
+        medias = [{"nom": nom, "type": "image", "usages": ", ".join(entree["usages"]), "etat": etats_images[nom][0]}
+                  for nom, entree in sorted(images.items()) if sid in entree["scenes"]]
+        medias += [{"nom": relatif, "type": "vidéo", "usages": ", ".join(entree["usages"]),
+                    "etat": etats_videos[relatif][0], "ogv": etats_videos[relatif][1]}
+                   for relatif, entree in sorted(videos.items()) if sid in entree["scenes"]]
+        entrees = exploration.entrees.get(sid, [])
+        scenes.append({
+            "id": sid, "titre": str(fiche.get("titre") or ""), "lieu": str(fiche.get("lieu") or ""),
+            "moment": str(fiche.get("moment") or ""), "fichier": projet.ou(sid),
+            "resume": str(fiche.get("resume") or "").strip(), "notes": str(fiche.get("notes") or "").strip(),
+            "objectifs": [str(objectif) for objectif in _liste(fiche.get("objectif_narratif"))],
+            "personnages": [str(_dict(projet.personnages.get(pid)).get("nom", pid)) for pid in _liste(fiche.get("personnages"))],
+            "conditions": conditions_de(fiche),
+            "debut": sid == debut, "atteinte": sid in exploration.entrees,
+            "fin": bool(fiche.get("fin")), "retour": bool(fiche.get("retour")),
+            "repliques": len(lignes),
+            "apercu": _apercu(projet, fiche.get("contenu")),
+            "question": _apercu(projet, [question])[0] if question is not None else None,
+            "sorties": sorties,
+            "entree": [{"variable": nom, "valeurs": sorted({_litteral(etat.get(nom)) for etat in entrees})}
+                       for nom in projet.variables],
+            "route": _texte_route(exploration.routes[sid]) if sid in exploration.routes else "",
+            "medias": medias,
+            "galerie": _titre_galerie(sid, fiche) if fiche.get("galerie") else "",
+            "traductions": [{"code": code, "total": len(lignes) + len(textes_scene),
+                             "faites": sum(r.rid in faites for r in lignes) + sum(t in textes for t in textes_scene)}
+                            for code, (faites, textes) in traductions.items()],
+            "avertissements": [probleme["message"] for probleme in problemes if probleme["scene"] == sid],
+            "h": GRAPHE["entete"] + GRAPHE["haut_sorties"] + len(sorties) * GRAPHE["ligne"] + GRAPHE["bas"],
+        })
+    positions, arriere = _disposition(debut, projet.ordre(), [(arete["de"], arete["vers"]) for arete in aretes],
+                                      {scene["id"]: scene["h"] for scene in scenes})
+    for scene in scenes:
+        scene["x"], scene["y"] = positions[scene["id"]]
+    for arete in aretes:
+        arete["arriere"] = (arete["de"], arete["vers"]) in arriere
+    routes = []
+    for numero, route in enumerate(routes_de_test(exploration), 1):
+        chemin = route.get("route", ())
+        libelles = iter(libelle for _, _, libelle in route["choix"])
+        etapes = [{"de": chemin[i], "vers": chemin[i + 2], "choix": None if chemin[i + 1] == "suite" else next(libelles, None)}
+                  for i in range(0, len(chemin) - 2, 2)]
+        routes.append({"nom": f"route_{numero:02d}", "fin": route["fin"], "choix": [c[2] for c in route["choix"]],
+                       "scenes": list(chemin[0::2]), "etapes": etapes,
+                       "etat": {nom: _litteral(valeur) for nom, valeur in route["etat"].items()}})
+    return {
+        "_genere_par": MARQUEUR,
+        "titre": str(projet.bible.get("titre") or "Graphe des routes"),
+        "geometrie": {cle: GRAPHE[cle] for cle in ("largeur", "entete", "haut_sorties", "ligne")},
+        "largeur": max((scene["x"] + GRAPHE["largeur"] for scene in scenes), default=0) + GRAPHE["marge"],
+        "hauteur": max((scene["y"] + scene["h"] for scene in scenes), default=0) + GRAPHE["marge"],
+        "stats": {"scenes": len(scenes), "fins": len(exploration.fins), "etats": exploration.etats,
+                  "complete": exploration.complete},
+        "langues": [projet.langue_source] + projet.langues_cibles,
+        "scenes": scenes, "aretes": aretes, "routes": routes, "problemes": problemes,
+    }
+
+
+def _sorties(projet: Projet, sid: str, exploration: Exploration) -> list:
+    """Sorties d'une scène dans le graphe : appels, puis choix ou suite, ou fin, ou retour."""
+    fiche = projet.scenes[sid]
+    appels = []
+    for element in tous_les_elements(projet, fiche):
+        if cle_element(element, projet) == "appel" and element["appel"] not in appels:
+            appels.append(element["appel"])
+    sorties = [{"type": "appel", "libelle": f"appel {cible}", "destination": cible} for cible in appels]
+    # Une scène jamais atteinte, ou une exploration partielle, ne dit rien des choix proposés.
+    tout_propose = sid not in exploration.entrees or not exploration.complete
+    for rang, option in enumerate(options_de(fiche)[1]):
+        sorties.append({"type": "choix", "libelle": str(option["libelle"]),
+                        "si": _expr_texte(option["si"]) if "si" in option else "",
+                        "effets": _texte_effets(option.get("effets")), "destination": option["destination"],
+                        "propose": tout_propose or (sid, rang) in exploration.choix_proposes,
+                        "contenu": _apercu(projet, option.get("contenu"))})
+    if fiche.get("suite"):
+        sorties.append({"type": "suite", "libelle": "suite", "destination": fiche["suite"]})
+    if fiche.get("fin"):
+        sorties.append({"type": "fin", "libelle": "fin de partie"})
+    if fiche.get("retour"):
+        sorties.append({"type": "retour", "libelle": "retour à la scène appelante"})
+    return sorties
+
+
+def _apercu(projet: Projet, elements, niveau: int = 0) -> list:
+    """Contenu d'une scène en lignes lisibles : [{n: niveau, t: type, texte, qui}]."""
+    lignes = []
+    for element in _liste(elements):
+        cle = cle_element(element, projet)
+        if cle == "narration":
+            lignes.append({"n": niveau, "t": "narration", "texte": str(element[cle])})
+        elif cle in projet.personnages:
+            nom = str(_dict(projet.personnages[cle]).get("nom", cle))
+            lignes.append({"n": niveau, "t": "replique", "qui": nom, "texte": str(element[cle])})
+        elif cle == "si":
+            lignes.append({"n": niveau, "t": "si", "texte": f"si {_expr_texte(element['si'])}"})
+            lignes += _apercu(projet, element.get("alors"), niveau + 1)
+            for branche in _liste(element.get("sinon_si")):
+                lignes.append({"n": niveau, "t": "si", "texte": f"sinon si {_expr_texte(branche.get('si'))}"})
+                lignes += _apercu(projet, branche.get("alors"), niveau + 1)
+            if element.get("sinon") is not None:
+                lignes.append({"n": niveau, "t": "si", "texte": "sinon"})
+                lignes += _apercu(projet, element.get("sinon"), niveau + 1)
+        elif cle is not None:
+            lignes.append({"n": niveau, "t": "action", "texte": _texte_action(element, cle)})
+    return lignes
+
+
+def _texte_action(element: dict, cle: str) -> str:
+    valeur = element[cle]
+    transition = f" ({element['transition']})" if element.get("transition") else ""
+    if cle == "decor":
+        return f"décor {valeur or '(vide)'}{transition}"
+    if cle == "montrer":
+        return f"montre {valeur}" + (f", {element['position']}" if element.get("position") else "") + transition
+    if cle == "cacher":
+        return f"retire {valeur}{transition}"
+    if cle == "pause":
+        return "pause jusqu'au clic" if valeur is None else f"pause {valeur} s"
+    if cle == "effets":
+        return f"effets : {_texte_effets(valeur)}"
+    return f"{cle} {valeur}"
+
+
+def _texte_effets(effets) -> str:
+    return ", ".join(f"{nom} {valeur:+}" if _est_nombre(valeur) else f"{nom} = {_litteral(valeur)}"
+                     for nom, valeur in _dict(effets).items())
+
+
+def _probleme(projet: Projet, message: str) -> dict:
+    """Message du rapport, rattaché à sa scène quand on la retrouve (fiche ou réplique)."""
+    ou, _, texte = message.partition(" : ")
+    scene = next((sid for sid, fichier in projet.fichiers.items() if ou == fichier or ou.startswith(fichier + ",")), "")
+    if not scene:
+        trouve = re.search(r", ([a-z0-9_]+)_[0-9a-f]{8}(?:_\d+)?$", ou)
+        if trouve:
+            scene = next((sid for sid in projet.scenes if sid.lower() == trouve.group(1)), "")
+    return {"ou": ou, "message": texte or message, "scene": scene}
+
+
+def _disposition(debut, ordre: list, aretes: list, hauteurs: dict) -> tuple[dict, set]:
+    """Place les scènes du graphe HTML de gauche à droite. Colonnes : plus long chemin depuis
+    le début, sans les retours en arrière. Ordre dans chaque colonne : barycentre des voisins.
+    Renvoie ({scène : (x, y)}, liens de retour en arrière)."""
+    suivants = {sid: [] for sid in ordre}
+    for de, vers in aretes:
+        if vers in suivants and vers not in suivants[de]:
+            suivants[de].append(vers)
+    # Parcours en profondeur : un lien vers une scène en cours de parcours ferme un cycle.
+    etat, arriere, decouverte = {}, set(), []
+    for racine in ([debut] if debut in suivants else []) + list(ordre):
+        if racine in etat:
+            continue
+        etat[racine] = "en cours"
+        decouverte.append(racine)
+        pile = [(racine, iter(suivants[racine]))]
+        while pile:
+            sid, reste = pile[-1]
+            for vers in reste:
+                if etat.get(vers) == "en cours":
+                    arriere.add((sid, vers))
+                elif vers not in etat:
+                    etat[vers] = "en cours"
+                    decouverte.append(vers)
+                    pile.append((vers, iter(suivants[vers])))
+                    break
+            else:
+                etat[sid] = "fini"
+                pile.pop()
+    avant = {sid: [vers for vers in suivants[sid] if (sid, vers) not in arriere] for sid in ordre}
+    precedents = {sid: [de for de in ordre if sid in avant[de]] for sid in ordre}
+    entrants = {sid: len(precedents[sid]) for sid in ordre}
+    colonne = {sid: 0 for sid in ordre}
+    file = [sid for sid in decouverte if entrants[sid] == 0]
+    while file:
+        sid = file.pop(0)
+        for vers in avant[sid]:
+            colonne[vers] = max(colonne[vers], colonne[sid] + 1)
+            entrants[vers] -= 1
+            if entrants[vers] == 0:
+                file.append(vers)
+    colonnes = [[] for _ in range(max(colonne.values(), default=0) + 1)]
+    for sid in decouverte:
+        colonnes[colonne[sid]].append(sid)
+    # Étapes fictives pour les liens qui sautent des colonnes : elles comptent pour l'ordre.
+    gauche, droite = {}, {}
+    for sid in ordre:
+        for vers in avant[sid]:
+            precedent = sid
+            for c in range(colonne[sid] + 1, colonne[vers]):
+                fictif = ("fictif", sid, vers, c)
+                colonnes[c].append(fictif)
+                gauche.setdefault(fictif, []).append(precedent)
+                droite.setdefault(precedent, []).append(fictif)
+                precedent = fictif
+            gauche.setdefault(vers, []).append(precedent)
+            droite.setdefault(precedent, []).append(vers)
+    for _ in range(4):
+        for c in range(1, len(colonnes)):
+            colonnes[c] = _par_barycentre(colonnes[c], gauche, colonnes[c - 1])
+        for c in range(len(colonnes) - 2, -1, -1):
+            colonnes[c] = _par_barycentre(colonnes[c], droite, colonnes[c + 1])
+    # Hauteur : celle des scènes qui y mènent (une suite de scènes reste sur une ligne),
+    # sans chevaucher la scène précédente de la colonne.
+    positions = {}
+    for c, liste in enumerate(colonnes):
+        x = GRAPHE["marge"] + c * (GRAPHE["largeur"] + GRAPHE["ecart_colonnes"])
+        bas = GRAPHE["marge"]
+        for sid in (noeud for noeud in liste if isinstance(noeud, str)):
+            souhaits = [positions[de][1] for de in precedents[sid] if de in positions]
+            y = max(bas, sum(souhaits) / len(souhaits)) if souhaits else bas
+            positions[sid] = (x, round(y))
+            bas = round(y) + hauteurs[sid] + GRAPHE["ecart_noeuds"]
+    return positions, arriere
+
+
+def _par_barycentre(colonne: list, voisins: dict, reference: list) -> list:
+    rangs = {noeud: rang for rang, noeud in enumerate(reference)}
+    actuels = {noeud: rang for rang, noeud in enumerate(colonne)}
+
+    def cle(noeud):
+        places = [rangs[voisin] for voisin in voisins.get(noeud, []) if voisin in rangs]
+        return sum(places) / len(places) if places else actuels[noeud]
+
+    return sorted(colonne, key=cle)
 
 
 def contexte(projet: Projet, exploration: Exploration, sid: str) -> str:
@@ -1926,7 +2199,8 @@ def main(argv=None) -> int:
     commande_generer.add_argument("--sans-godot", action="store_true", help="ne pas faire relire le script par Godot")
     commandes.add_parser("provisoires", help="images et vidéos provisoires pour ce qui manque")
     commandes.add_parser("production", help="images et vidéos à produire → contenu/production.md")
-    commandes.add_parser("graphe", help="graphe des routes → contenu/graphe.md")
+    commande_graphe = commandes.add_parser("graphe", help="graphe des routes → contenu/graphe.html (interactif) et graphe.md (Mermaid)")
+    commande_graphe.add_argument("--ouvrir", action="store_true", help="ouvre le graphe interactif dans le navigateur")
     commande_contexte = commandes.add_parser("contexte", help="contexte pour écrire ou réviser une scène")
     commande_contexte.add_argument("scene", help="identifiant de la scène, par exemple CH01_SC02")
     commande_contexte.add_argument("-o", "--sortie", help="fichier de sortie (sinon : affichage)")
@@ -1976,7 +2250,11 @@ def main(argv=None) -> int:
         return 0
     if args.commande == "graphe":
         (RACINE / "contenu" / "graphe.md").write_text(graphe(projet, exploration), encoding="utf-8")
-        print("Graphe : contenu/graphe.md")
+        page = RACINE / FICHIER_GRAPHE_HTML
+        page.write_text(graphe_html(projet, exploration, rapport), encoding="utf-8")
+        print(f"Graphe : {FICHIER_GRAPHE_HTML} (à ouvrir dans un navigateur) et contenu/graphe.md (Mermaid)")
+        if args.ouvrir:
+            webbrowser.open(page.as_uri())
         return 0
     if args.commande == "contexte":
         if args.scene not in projet.scenes:
