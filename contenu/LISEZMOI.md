@@ -1,5 +1,7 @@
 # Écrire le jeu : bible et fiches de scène
 
+[English version](README.md)
+
 Le script du jeu (`game/story/*.rpy`) n'est plus écrit à la main. Il est **produit à partir de ce dossier** par `tools/fiches.py`, en respectant le sous-ensemble commun Ren'Py / Godot.
 
 ```
@@ -41,10 +43,11 @@ Ces tests suivent l'histoire automatiquement : il n'y a rien à mettre à jour �
 | Champ | Contenu |
 |---|---|
 | `debut` | Id de la première scène. |
-| `personnages.<id>` | `nom`, **`age` (obligatoire, 18 ou plus)**, `couleur` (#rrggbb), `role`, `biographie`, `personnalite`, `desirs`, `contradictions`, `limites`, `secrets`, `images` (sprites). L'id (minuscules) sert dans les fiches : `lena: "…"`. |
+| `personnages.<id>` | `nom`, **`age` (obligatoire, au moins `age_minimum`, 18 par défaut)**, `couleur` (#rrggbb), `role`, `biographie`, `personnalite`, `desirs`, `contradictions`, `limites`, `secrets`, `images` (sprites). L'id (minuscules) sert dans les fiches : `lena: "…"`. |
 | `lieux.<id>` | `description`, `decors` (images de fond). |
 | `variables.<nom>` | `defaut` (nombre, booléen ou texte), `min` et `max` (nombres), `description`. |
 | `regles_editoriales` | Liste de règles, reprises dans le contexte d'écriture. |
+| `synopsis`, `mystere_central` | Facultatifs ; repris dans le contexte d'écriture. |
 
 ## Fiche de scène
 

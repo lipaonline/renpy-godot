@@ -8,7 +8,7 @@ A small demo game written **once** and played identically by **Ren'Py 8.5** and 
 |---|---|
 | ![The demo in Ren'Py](docs/captures/renpy_demo.png) | ![The same scene in Godot](docs/captures/godot_demo.png) |
 
-> The demo game and the detailed documentation (tutorial, scene-sheet format, spec) are in French. The tool commands are French words too (`verifier` = check, `generer` = generate…).
+> Every document exists in English and in French. The demo game is in French, and so are the tool commands and the scene-sheet keys (`verifier` = check, `generer` = generate, `titre` = title…); the documentation translates them.
 
 ## What's inside
 
@@ -33,15 +33,15 @@ $RENPY_SDK/renpy.sh .                   # play in Ren'Py ($RENPY_SDK: the SDK fo
 
 The first time, you can also open the project from the Ren'Py launcher.
 
-**To make your own game, follow [TUTORIEL.md](TUTORIEL.md) (in French).**
+**To make your own game, follow the [tutorial](TUTORIAL.md).**
 
-## Documentation (in French)
+## Documentation
 
-| Document | Contents |
-|---|---|
-| [TUTORIEL.md](TUTORIEL.md) | From the demo to your own game, step by step |
-| [contenu/LISEZMOI.md](contenu/LISEZMOI.md) | Story bible and scene-sheet format |
-| [SPEC-sous-ensemble-renpy.md](SPEC-sous-ensemble-renpy.md) | What the shared script may contain; differences between the engines |
+| Document | Contents | Français |
+|---|---|---|
+| [TUTORIAL.md](TUTORIAL.md) | From the demo to your own game, step by step | [TUTORIEL.md](TUTORIEL.md) |
+| [contenu/README.md](contenu/README.md) | Story bible and scene-sheet format | [LISEZMOI.md](contenu/LISEZMOI.md) |
+| [SPEC.md](SPEC.md) | What the shared script may contain; differences between the engines | [SPEC-sous-ensemble-renpy.md](SPEC-sous-ensemble-renpy.md) |
 
 ## Commands
 
@@ -91,7 +91,7 @@ tests/            Godot and Python tests; frozen demo for the engine tests
 
 ## Limitations
 
-The shared script is a **subset** of Ren'Py: no custom screens, no ATL, no Python blocks. See the [spec](SPEC-sous-ensemble-renpy.md) for details. The demo media are test images and a test video.
+The shared script is a **subset** of Ren'Py: no custom screens, no ATL, no Python blocks. See the [spec](SPEC.md) for details. The demo media are test images and a test video.
 
 ## License
 

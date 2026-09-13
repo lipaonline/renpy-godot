@@ -1,5 +1,7 @@
 # Tutoriel : de la démo à votre jeu
 
+[English version](TUTORIAL.md)
+
 Ce tutoriel part du jeu de démo et vous amène jusqu'à votre propre jeu, joué par Ren'Py et par Godot. Comptez une heure.
 
 ## 1. Installer et jouer la démo

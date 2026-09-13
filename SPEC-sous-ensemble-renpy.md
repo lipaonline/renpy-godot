@@ -1,5 +1,7 @@
 # Sous-ensemble commun Ren'Py / Godot — spécification v0.1
 
+[English version](SPEC.md)
+
 ## 1. Principe
 
 - **Ren'Py est la référence.** Tout script du sous-ensemble est un script Ren'Py valide. Il doit se dérouler de la même façon dans le lecteur Godot : mêmes répliques, mêmes choix, mêmes variables, même ordre.
@@ -73,10 +75,10 @@ menu:
 
     "Lui faire confiance":
         $ relation_lena += 2
-        jump lena_confiance
+        jump ch01_sc03a
 
     "L'interroger sur la photo" if indice_photo:
-        jump lena_interrogatoire
+        jump ch01_sc03b
 ```
 
 Un choix dont la condition est fausse n'est pas affiché. Un menu sans aucun choix visible est sauté, comme dans Ren'Py.
@@ -99,13 +101,13 @@ Elles sont traduites de Python vers la classe `Expression` de Godot.
 - **Images :** `game/images/` (sous-dossiers acceptés), en PNG, JPG ou WebP. Le nom de fichier en minuscules donne le nom d'image ; les espaces séparent tag et attributs, comme dans Ren'Py.
 - **Vidéos :** le script référence le `.webm`, que Ren'Py lit. Godot lit le `.ogv` (Ogg Theora) de même nom. `python3 tools/convertir_videos.py` génère les `.ogv` manquants ou périmés.
 - **Audio :** privilégier le `.ogg` Vorbis, lu par les deux moteurs. Godot ne lit pas l'Opus.
-- **Galerie :** `game/galerie.json` liste les entrées ; Godot le lit dans `engine/gallery.gd`, Ren'Py dans `game/galerie.rpy`. Chaque entrée est débloquée dès que son label a été atteint une fois (`renpy.seen_label` côté Ren'Py). Elle montre soit des images une par une sur fond noir, soit une vidéo ; un clic passe à l'image suivante ou arrête la vidéo. Format :
+- **Galerie :** `game/galerie.json`, généré depuis le champ `galerie` des fiches, liste les entrées ; Godot le lit dans `engine/gallery.gd`, Ren'Py dans `game/galerie.rpy`. Chaque entrée est débloquée dès que son label a été atteint une fois (`renpy.seen_label` côté Ren'Py). Elle montre soit des images une par une sur fond noir, soit une vidéo ; un clic passe à l'image suivante ou arrête la vidéo. Format :
 
 ```json
 {"entrees": [
-  {"titre": "La confiance de Léna", "label": "lena_confiance", "vignette": "lena rougit",
+  {"titre": "La confiance de Léna", "label": "ch01_sc03a", "vignette": "lena rougit",
    "video": "videos/lena_scene_01.webm"},
-  {"titre": "Le secret de Léna", "label": "lena_interrogatoire", "vignette": "lena serieuse",
+  {"titre": "Le secret de Léna", "label": "ch01_sc03b", "vignette": "lena serieuse",
    "images": ["appartement_soir", "lena serieuse"]}
 ]}
 ```
@@ -146,20 +148,20 @@ Ces éléments restent réservés aux fichiers Ren'Py situés hors de `game/stor
 | Parcours d'interface scripté | `godot --path . -- --actions=start,advance,menu:history,back,quit` (liste des actions dans `_run_action`, `engine/vn_player.gd`) |
 | Tests Godot | `godot --headless --path . --script res://tests/run_tests.gd` |
 | Rapport de routes | `godot --headless --path . --script res://tools/routes.gd` |
-| Jouer (Ren'Py) | `~/dev/renpy-8.5.3-sdk/renpy.sh .`, ou via le launcher |
-| Lint Ren'Py | `~/dev/renpy-8.5.3-sdk/renpy.sh . lint` |
-| Tests Ren'Py | `~/dev/renpy-8.5.3-sdk/renpy.sh . test --overwrite-screenshots` (captures dans `tests/screenshots/`) |
-| Médias provisoires | `python3 tools/generer_placeholders.py` |
+| Jouer (Ren'Py) | `$RENPY_SDK/renpy.sh .`, ou via le launcher |
+| Lint Ren'Py | `$RENPY_SDK/renpy.sh . lint` |
+| Tests Ren'Py | `$RENPY_SDK/renpy.sh . test --overwrite-screenshots` (captures dans `tests/screenshots/`) |
+| Médias provisoires | `.venv/bin/python tools/fiches.py provisoires` |
 | Vidéos pour Godot | `python3 tools/convertir_videos.py` |
 
 **Côté Ren'Py (déjà fait) :** l'interface a été générée en 1920×1080 par la commande cachée du launcher, puis complétée par `gui_images` (normale et variante « small phone »). Le `script.rpy` modèle, qui redéfinissait `label start`, a été retiré. Pour régénérer :
 
 ```sh
-SDK=~/dev/renpy-8.5.3-sdk
+SDK=$RENPY_SDK
 $SDK/renpy.sh $SDK/launcher generate_gui "$PWD" --width 1920 --height 1080 --accent "#b48cff" --template $SDK/gui --start
 RENPY_VARIANT="small phone" $SDK/renpy.sh . gui_images
 $SDK/renpy.sh . gui_images
-trash game/script.rpy
+rm game/script.rpy
 ```
 
 Dans un test Ren'Py, `advance` interrompt aussi une vidéo en cours, comme un clic du joueur. Le test `video_seule` vérifie donc la lecture du WebM sans clic simulé.
@@ -167,4 +169,4 @@ Dans un test Ren'Py, `advance` interrompt aussi une vidéo en cours, comme un cl
 **Export :**
 
 - Godot : ajouter `*.rpy, *.json` aux filtres « fichiers non-ressources » et exclure `*.webm`.
-- Ren'Py : exclure `*.ogv` et `*.import` avec `build.classify`.
+- Ren'Py : `*.ogv` et `*.import` sont exclus par `build.classify` (déjà en place dans `game/options.rpy`).
