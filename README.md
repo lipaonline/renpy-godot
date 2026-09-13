@@ -1,96 +1,100 @@
-# Bootstrap visual novel : un script, deux moteurs
+# Visual novel bootstrap: one script, two engines
 
-Un petit jeu de démo écrit **une seule fois** et joué à l'identique par **Ren'Py 8.5** et par un **lecteur Godot 4.7** en GDScript. Il est livré avec la chaîne d'outils pour écrire votre propre jeu.
+[Version française](README.fr.md)
+
+A small demo game written **once** and played identically by **Ren'Py 8.5** and by a **Godot 4.7 player** written in GDScript. It comes with the toolchain to write your own game.
 
 | Ren'Py | Godot |
 |---|---|
-| ![La démo dans Ren'Py](docs/captures/renpy_demo.png) | ![La même scène dans Godot](docs/captures/godot_demo.png) |
+| ![The demo in Ren'Py](docs/captures/renpy_demo.png) | ![The same scene in Godot](docs/captures/godot_demo.png) |
 
-## Ce que contient le dépôt
+> The demo game and the detailed documentation (tutorial, scene-sheet format, spec) are in French. The tool commands are French words too (`verifier` = check, `generer` = generate…).
 
-- **Un jeu de démo** : 7 scènes, 2 fins, une vidéo, une galerie débloquable. Il est décrit dans [contenu/](contenu/).
-- **Une chaîne d'écriture.** Une bible (personnages, lieux, variables) et des fiches de scène en YAML deviennent un script `.rpy` commun aux deux moteurs (`tools/fiches.py`). Toutes les routes sont vérifiées avant génération : conditions, variables, routes mortes, choix jamais proposés.
-- **Un lecteur Godot** qui joue ce script avec la même interface que Ren'Py : menu principal, sauvegardes avec vignettes, historique, retour arrière, avance rapide et automatique, préférences, galerie.
-- **Des tests des deux côtés.** Les parcours sont générés depuis les fiches : Godot et Ren'Py rejouent les mêmes routes et doivent arriver à la même fin.
+## What's inside
 
-## Démarrage
+- **A demo game**: 7 scenes, 2 endings, a video and an unlockable gallery. It lives in [contenu/](contenu/).
+- **A writing toolchain.** A story bible (characters, locations, variables) and YAML scene sheets are turned into a `.rpy` script shared by both engines (`tools/fiches.py`). Every route is checked before generation: entry conditions, variables, dead ends, choices that are never offered.
+- **A Godot player** that runs this script with the same interface as Ren'Py: main menu, saves with thumbnails, history, rollback, skip and auto-forward, preferences, gallery.
+- **Tests on both sides.** Play-through routes are generated from the scene sheets; Godot and Ren'Py replay the same routes and must reach the same ending.
 
-Prérequis :
-- [Godot 4.7](https://godotengine.org/) ;
-- le [SDK Ren'Py 8.5](https://www.renpy.org/latest.html) ;
-- Python 3.10 ou plus ;
-- `ffmpeg` et `ffmpeg2theora`, pour les vidéos (`brew install ffmpeg ffmpeg2theora` sur macOS).
+## Getting started
+
+Requirements:
+- [Godot 4.7](https://godotengine.org/);
+- the [Ren'Py 8.5 SDK](https://www.renpy.org/latest.html);
+- Python 3.10 or later;
+- `ffmpeg` and `ffmpeg2theora`, for videos (`brew install ffmpeg ffmpeg2theora` on macOS).
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-godot --path .                          # jouer dans Godot
-$RENPY_SDK/renpy.sh .                   # jouer dans Ren'Py ($RENPY_SDK : dossier du SDK)
+godot --path .                          # play in Godot
+$RENPY_SDK/renpy.sh .                   # play in Ren'Py ($RENPY_SDK: the SDK folder)
 ```
 
-Au premier lancement de Ren'Py, ouvrez le projet depuis le launcher, ou passez son chemin à `renpy.sh`.
+The first time, you can also open the project from the Ren'Py launcher.
 
-**Pour faire votre propre jeu, suivez le [TUTORIEL.md](TUTORIEL.md).**
+**To make your own game, follow [TUTORIEL.md](TUTORIEL.md) (in French).**
 
-## Documentation
+## Documentation (in French)
 
-| Document | Contenu |
+| Document | Contents |
 |---|---|
-| [TUTORIEL.md](TUTORIEL.md) | De la démo à votre jeu, pas à pas |
-| [contenu/LISEZMOI.md](contenu/LISEZMOI.md) | Format de la bible et des fiches de scène |
-| [SPEC-sous-ensemble-renpy.md](SPEC-sous-ensemble-renpy.md) | Ce que le script commun peut contenir, différences entre moteurs |
+| [TUTORIEL.md](TUTORIEL.md) | From the demo to your own game, step by step |
+| [contenu/LISEZMOI.md](contenu/LISEZMOI.md) | Story bible and scene-sheet format |
+| [SPEC-sous-ensemble-renpy.md](SPEC-sous-ensemble-renpy.md) | What the shared script may contain; differences between the engines |
 
-## Commandes
+## Commands
 
 ```sh
-.venv/bin/python tools/fiches.py verifier              # cohérence et toutes les routes
-.venv/bin/python tools/fiches.py generer               # écrit le .rpy et les tests de parcours, relu par Godot
-.venv/bin/python tools/fiches.py provisoires           # images et vidéos provisoires pour ce qui manque
-.venv/bin/python tools/fiches.py production            # images et vidéos à produire
-.venv/bin/python tools/fiches.py graphe                # graphe des routes (Mermaid)
-.venv/bin/python tools/fiches.py contexte CH01_SC02    # paquet pour écrire une scène
-python3 tools/convertir_videos.py                      # .webm → .ogv pour Godot
+.venv/bin/python tools/fiches.py verifier              # check consistency and every route
+.venv/bin/python tools/fiches.py generer               # write the .rpy script and route tests, then have Godot re-read it
+.venv/bin/python tools/fiches.py provisoires           # placeholder images and videos for anything missing
+.venv/bin/python tools/fiches.py production            # list of images and videos to produce
+.venv/bin/python tools/fiches.py graphe                # route graph (Mermaid)
+.venv/bin/python tools/fiches.py contexte CH01_SC02    # context pack for writing a scene
+python3 tools/convertir_videos.py                      # .webm → .ogv for Godot
 ```
 
-Tests :
+Tests:
 
 ```sh
-.venv/bin/python -m unittest discover -s tests -p "test_*.py"     # chaîne d'écriture
-godot --headless --path . --script res://tests/run_tests.gd        # moteur et routes (Godot)
+.venv/bin/python -m unittest discover -s tests -p "test_*.py"     # writing toolchain
+godot --headless --path . --script res://tests/run_tests.gd        # engine and routes (Godot)
 $RENPY_SDK/renpy.sh . lint                                         # script (Ren'Py)
-$RENPY_SDK/renpy.sh . test --overwrite-screenshots                 # routes et galerie (Ren'Py)
+$RENPY_SDK/renpy.sh . test --overwrite-screenshots                 # routes and gallery (Ren'Py)
 ```
 
-## Commandes en jeu (Godot, comme dans Ren'Py)
+## In-game controls (Godot, same as Ren'Py)
 
-| Touche | Action |
+| Key | Action |
 |---|---|
-| Clic, Espace, Entrée | continuer |
-| Molette vers le haut, Page ↑ | retour arrière |
-| Ctrl maintenu, Tab | avance rapide (texte déjà lu) |
-| A | avance automatique |
-| H | historique |
-| Échap, clic droit | menu de jeu |
-| F5 / F9 | sauvegarde / chargement rapide |
+| Click, Space, Enter | continue |
+| Mouse wheel up, Page Up | rollback |
+| Hold Ctrl, Tab | skip (already-read text) |
+| A | auto-forward |
+| H | history |
+| Esc, right click | game menu |
+| F5 / F9 | quick save / quick load |
 
-## Organisation
+## Layout
 
 ```
-contenu/          bible et fiches de scène : c'est ici qu'on écrit le jeu
-game/             dossier « game » de Ren'Py, partagé avec Godot
-  story/          script .rpy généré depuis contenu/ (ne pas modifier à la main)
-  images/, videos/  médias : .webm pour Ren'Py, .ogv pour Godot
-  gui/, *.rpy     interface Ren'Py ; Godot en réutilise les images
-engine/           lecteur Godot : compilateur, interpréteur, interface
-tools/            fiches.py (fiches → .rpy), conversion vidéo, rapport de routes
-tests/            tests Godot et Python ; démo figée pour les tests du moteur
+contenu/          story bible and scene sheets: this is where you write the game
+game/             Ren'Py "game" folder, shared with Godot
+  story/          .rpy script generated from contenu/ (do not edit by hand)
+  images/, videos/  media: .webm for Ren'Py, .ogv for Godot
+  gui/, *.rpy     Ren'Py interface; Godot reuses its images
+engine/           Godot player: compiler, interpreter, interface
+tools/            fiches.py (scene sheets → .rpy), video conversion, route report
+tests/            Godot and Python tests; frozen demo for the engine tests
 ```
 
-## Limites
+## Limitations
 
-Le script commun est un **sous-ensemble** de Ren'Py : pas d'écrans personnalisés, pas d'ATL, pas de blocs Python. Le détail est dans la [SPEC](SPEC-sous-ensemble-renpy.md). Les médias de la démo sont des images et une vidéo de test.
+The shared script is a **subset** of Ren'Py: no custom screens, no ATL, no Python blocks. See the [spec](SPEC-sous-ensemble-renpy.md) for details. The demo media are test images and a test video.
 
-## Licence
+## License
 
 [MIT](LICENSE).
 
-Les fichiers d'interface Ren'Py (`game/gui.rpy`, `game/screens.rpy`, `game/options.rpy` et `game/gui/`) ont été générés par le launcher du SDK Ren'Py, dont l'essentiel est distribué sous licence MIT. Ren'Py et Godot ne sont pas inclus dans ce dépôt.
+The Ren'Py interface files (`game/gui.rpy`, `game/screens.rpy`, `game/options.rpy` and `game/gui/`) were generated by the Ren'Py SDK launcher, most of which is MIT-licensed. Neither Ren'Py nor Godot is included in this repository.
