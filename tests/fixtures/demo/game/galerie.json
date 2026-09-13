@@ -1,0 +1,20 @@
+{
+  "_genere_par": "Fichier généré par tools/fiches.py depuis contenu/ : ne pas modifier à la main.",
+  "entrees": [
+    {
+      "titre": "La confiance de Léna",
+      "label": "ch01_sc03a",
+      "vignette": "lena rougit",
+      "video": "videos/lena_scene_01.webm"
+    },
+    {
+      "titre": "Le secret de Léna",
+      "label": "ch01_sc03b",
+      "vignette": "lena serieuse",
+      "images": [
+        "appartement_soir",
+        "lena serieuse"
+      ]
+    }
+  ]
+}

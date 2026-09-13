@@ -1,0 +1,13 @@
+id: CH01_SC05
+titre: Fin solitaire
+lieu: rue
+moment: nuit
+personnages: []
+resume: Le protagoniste repart sans avoir vraiment parlé à Léna.
+
+contenu:
+  - decor: rue_nuit
+    transition: fade
+  - narration: "Je redescends l'escalier. La porte se referme derrière moi."
+
+fin: true

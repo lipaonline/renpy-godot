@@ -1,0 +1,22 @@
+id: CH01_SC04
+titre: Fin de la démo
+lieu: appartement_lena
+moment: soir
+personnages: []
+resume: Bilan de la soirée selon la relation avec Léna et l'avancée de l'enquête.
+
+contenu:
+  - decor: appartement_soir
+    transition: fade
+  - narration: "{i}Fin de la démo{/i} — relation avec Léna : [relation_lena], mystère : [mystere]."
+  - si: relation_lena >= 5
+    alors:
+      - narration: "Léna m'a fait confiance ce soir."
+    sinon_si:
+      - si: mystere >= 2
+        alors:
+          - narration: "Je repars avec plus de questions que de réponses."
+    sinon:
+      - narration: "La soirée s'achève sur un silence."
+
+fin: true

@@ -1,0 +1,44 @@
+{
+  "_genere_par": "Fichier généré par tools/fiches.py depuis contenu/ : ne pas modifier à la main.",
+  "routes": [
+    {
+      "nom": "route_01",
+      "choix": [
+        "Monter directement",
+        "Lui faire confiance"
+      ],
+      "fin": "ch01_sc04",
+      "etat_final": {
+        "relation_lena": 6,
+        "mystere": 0,
+        "indice_photo": false
+      }
+    },
+    {
+      "nom": "route_02",
+      "choix": [
+        "Regarder la boîte aux lettres",
+        "Repartir sous la pluie"
+      ],
+      "fin": "ch01_sc05",
+      "etat_final": {
+        "relation_lena": 1,
+        "mystere": 0,
+        "indice_photo": true
+      }
+    },
+    {
+      "nom": "route_03",
+      "choix": [
+        "Regarder la boîte aux lettres",
+        "L'interroger sur la photo"
+      ],
+      "fin": "ch01_sc04",
+      "etat_final": {
+        "relation_lena": 3,
+        "mystere": 2,
+        "indice_photo": true
+      }
+    }
+  ]
+}

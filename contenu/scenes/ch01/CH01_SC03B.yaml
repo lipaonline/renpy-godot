@@ -1,0 +1,23 @@
+id: CH01_SC03B
+titre: L'interrogatoire
+lieu: appartement_lena
+moment: soir
+personnages: [moi, lena]
+objectif_narratif:
+  - reveler_que_lena_connait_le_pere
+resume: Pressée de questions, Léna admet avoir connu le père ; un souvenir d'enfance remonte.
+conditions:
+  - indice_photo
+
+contenu:
+  - montrer: lena serieuse
+  - lena: "Ton père… Oui, je l'ai connu. Bien plus que tu ne le crois."
+  - appel: CH01_SOUVENIR
+  - effets: {mystere: 1}
+
+galerie:
+  titre: Le secret de Léna
+  vignette: lena serieuse
+  images: [appartement_soir, lena serieuse]
+
+suite: CH01_SC04

@@ -1,0 +1,22 @@
+# Python
+.venv/
+__pycache__/
+
+# Godot (on garde les .import et .uid, comme le recommande Godot)
+.godot/
+
+# Ren'Py : fichiers compilés, sauvegardes, journaux
+game/cache/
+game/saves/
+*.rpyc
+*.rpyb
+log.txt
+traceback.txt
+errors.txt
+lint.txt
+
+# Captures produites par les tests Ren'Py
+tests/screenshots/*.png
+
+# Système
+.DS_Store

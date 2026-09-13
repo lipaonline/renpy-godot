@@ -1,0 +1,261 @@
+"""Tests de tools/fiches.py :
+    .venv/bin/python -m unittest discover -s tests -p "test_*.py"
+"""
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+RACINE = Path(__file__).resolve().parent.parent
+DEMO = RACINE / "tests" / "fixtures" / "demo"
+sys.path.insert(0, str(RACINE / "tools"))
+
+import fiches  # noqa: E402
+
+
+def bible(**changements):
+    base = {
+        "debut": "A",
+        "personnages": {"moi": {"nom": "Moi", "age": 25}, "lena": {"nom": "Léna", "age": 27, "couleur": "#c8a2ff"}},
+        "lieux": {"salon": {"description": "Salon", "decors": ["salon"]}},
+        "variables": {"confiance": {"defaut": 0, "min": 0, "max": 5}, "indice": {"defaut": False}},
+    }
+    base.update(changements)
+    return base
+
+
+def scene(sid, **champs):
+    fiche = {"id": sid, "titre": f"Scène {sid}", "lieu": "salon", "personnages": ["moi", "lena"]}
+    fiche.update(champs)
+    if not any(cle in fiche for cle in fiches.FINS):
+        fiche["fin"] = True
+    return fiche
+
+
+def projet(*scenes, racine=None, **changements):
+    resultat = fiches.Projet(racine=racine or Path(tempfile.mkdtemp()), bible=bible(**changements))
+    for fiche in scenes:
+        resultat.scenes[fiche["id"]] = fiche
+        resultat.fichiers[fiche["id"]] = f"{fiche['id']}.yaml"
+    return resultat
+
+
+def verifier(p):
+    rapport = fiches.Rapport()
+    return rapport, fiches.verifier(p, rapport)
+
+
+def contient(messages, *morceaux):
+    return any(all(morceau in message for morceau in morceaux) for message in messages)
+
+
+class ContenuDuJeu(unittest.TestCase):
+    def test_contenu_valide_et_fichiers_a_jour(self):
+        rapport = fiches.Rapport()
+        p = fiches.charger(RACINE, rapport)
+        exploration = fiches.verifier(p, rapport)
+        self.assertEqual(rapport.erreurs, [])
+        for relatif, texte in fiches.generer(p, exploration).items():
+            chemin = RACINE / relatif
+            self.assertTrue(chemin.exists() and chemin.read_text(encoding="utf-8") == texte,
+                            f"{relatif} n'est pas à jour : lancez tools/fiches.py generer")
+
+
+class JeuDEssaiDemo(unittest.TestCase):
+    """La démo figée de tests/fixtures/demo sert aux tests du moteur Godot."""
+
+    def test_demo_valide_et_script_identique(self):
+        rapport = fiches.Rapport()
+        p = fiches.charger(DEMO, rapport)
+        exploration = fiches.verifier(p, rapport)
+        self.assertEqual(rapport.erreurs, [])
+        self.assertEqual(rapport.avertissements, [])
+        self.assertEqual(set(exploration.fins), {"CH01_SC04", "CH01_SC05"})
+        produits = fiches.generer(p)
+        chapitre = produits["game/story/chapitre_01.rpy"]
+        self.assertIn('        "L\'interroger sur la photo" if indice_photo:', chapitre)
+        self.assertIn("    call ch01_souvenir", chapitre)
+        for relatif, texte in produits.items():
+            self.assertEqual((DEMO / relatif).read_text(encoding="utf-8"), texte, f"jeu d'essai {relatif} à régénérer")
+
+
+class Bible(unittest.TestCase):
+    def test_age_obligatoire_et_minimum(self):
+        rapport, _ = verifier(projet(scene("A"), personnages={"moi": {"nom": "Moi"}, "lena": {"nom": "Léna", "age": 17}}))
+        self.assertTrue(contient(rapport.erreurs, "« moi »", "« age » obligatoire"))
+        self.assertTrue(contient(rapport.erreurs, "« lena »", "âge 17", "minimum à 18"))
+
+    def test_age_minimum_reglable(self):
+        rapport, _ = verifier(projet(scene("A"), age_minimum=12,
+                                     personnages={"moi": {"nom": "Moi", "age": 30}, "lena": {"nom": "Léna", "age": 14}}))
+        self.assertEqual(rapport.erreurs, [])
+
+    def test_debut_inconnu(self):
+        rapport, _ = verifier(projet(scene("A"), debut="Z"))
+        self.assertTrue(contient(rapport.erreurs, "« debut »"))
+
+
+class Structure(unittest.TestCase):
+    def test_destination_et_element_inconnus(self):
+        rapport, _ = verifier(projet(scene("A", contenu=[{"montre": "lena"}], suite="B")))
+        self.assertTrue(contient(rapport.erreurs, "destination inconnue « B »"))
+        self.assertTrue(contient(rapport.erreurs, "contenu[1]", "élément non reconnu"))
+
+    def test_personnage_absent_de_la_scene(self):
+        rapport, _ = verifier(projet(scene("A", personnages=["moi"], contenu=[{"lena": "Salut."}])))
+        self.assertEqual(rapport.erreurs, [])
+        self.assertTrue(contient(rapport.avertissements, "« lena » parle sans figurer"))
+
+    def test_expressions_et_textes(self):
+        contenu = [
+            {"si": "confiance / 2 > 1", "alors": [{"narration": "a"}]},
+            {"si": "inconnue > 1", "alors": [{"narration": "b"}]},
+            {"si": "0 < confiance < 3", "alors": [{"narration": "c"}]},
+            {"narration": "Valeur : [nope]"},
+            {"effets": {"indice": 3}},
+        ]
+        rapport, _ = verifier(projet(scene("A", contenu=contenu)))
+        self.assertTrue(contient(rapport.erreurs, "division"))
+        self.assertTrue(contient(rapport.erreurs, "variable inconnue « inconnue »"))
+        self.assertTrue(contient(rapport.erreurs, "comparaisons enchaînées"))
+        self.assertTrue(contient(rapport.erreurs, "[nope]"))
+        self.assertTrue(contient(rapport.erreurs, "« indice » est un booléen"))
+
+    def test_libelles_en_double_ou_inclus(self):
+        a = scene("A", choix=[{"libelle": "Oui", "destination": "B"}, {"libelle": "Oui", "destination": "B"},
+                              {"libelle": "Oui, bien sûr", "destination": "B"}])
+        rapport, _ = verifier(projet(a, scene("B")))
+        self.assertTrue(contient(rapport.erreurs, "libellé « Oui » en double"))
+        self.assertTrue(contient(rapport.avertissements, "« Oui » est contenu dans « Oui, bien sûr »"))
+
+    def test_appel_d_une_scene_sans_retour(self):
+        rapport, _ = verifier(projet(scene("A", contenu=[{"appel": "B"}]), scene("B")))
+        self.assertTrue(contient(rapport.erreurs, "« B » doit se terminer par « retour: true »"))
+
+    def test_conditions_au_format_compact(self):
+        self.assertEqual(fiches.conditions_de({"conditions": {"confiance_min": 2, "indice": True}}),
+                         ["confiance >= 2", "indice == True"])
+
+
+class Routes(unittest.TestCase):
+    def test_condition_d_entree_fausse_sur_une_route(self):
+        a = scene("A", choix=[{"libelle": "Oui", "effets": {"confiance": 1}, "destination": "B"},
+                              {"libelle": "Non", "destination": "B"}])
+        b = scene("B", conditions=["confiance >= 1"])
+        rapport, _ = verifier(projet(a, b))
+        self.assertTrue(contient(rapport.erreurs, "B.yaml", "« confiance >= 1 » fausse", "« Non »"))
+
+    def test_bornes_et_choix_indisponibles(self):
+        a = scene("A", contenu=[{"effets": {"confiance": 9}}],
+                  choix=[{"libelle": "Caché", "si": "indice", "destination": "B"}])
+        rapport, _ = verifier(projet(a, scene("B")))
+        self.assertTrue(contient(rapport.avertissements, "« confiance » vaut 9", "maximum 5"))
+        self.assertTrue(contient(rapport.erreurs, "aucun choix disponible"))
+        self.assertTrue(contient(rapport.avertissements, "jamais proposé"))
+        self.assertTrue(contient(rapport.avertissements, "B.yaml", "jamais atteinte"))
+
+    def test_routes_de_test_couvrent_fins_et_choix(self):
+        a = scene("A", choix=[{"libelle": "Oui", "effets": {"confiance": 1}, "destination": "B"},
+                              {"libelle": "Non", "destination": "C"}])
+        b = scene("B", choix=[{"libelle": "Encore", "destination": "C"}, {"libelle": "Stop", "destination": "D"}])
+        p = projet(a, b, scene("C"), scene("D"))
+        rapport, exploration = verifier(p)
+        self.assertEqual(rapport.erreurs, [])
+        routes = fiches.routes_de_test(exploration)
+        self.assertEqual({route["fin"] for route in routes}, {"C", "D"})
+        self.assertEqual({(sid, rang) for route in routes for sid, rang, _ in route["choix"]},
+                         {("A", 0), ("A", 1), ("B", 0), ("B", 1)})
+        produits = fiches.generer(p, exploration)
+        attendues = json.loads(produits["tests/routes_attendues.json"])["routes"]
+        self.assertIn({"nom": "route_02", "choix": ["Oui", "Stop"], "fin": "d",
+                       "etat_final": {"confiance": 1, "indice": False}}, attendues)
+        tests_renpy = produits["game/tests_routes.rpy"]
+        self.assertIn('    click "Stop"', tests_renpy)
+        self.assertIn('    $ assert renpy.seen_label("d")', tests_renpy)
+
+
+class Generation(unittest.TestCase):
+    def test_script_produit(self):
+        a = scene("A", contenu=[
+            {"decor": "salon", "transition": "fade"},
+            {"montrer": "lena sourire", "position": "right", "transition": "dissolve"},
+            {"lena": 'Elle a dit "oui".'},
+            {"si": "confiance >= 2", "alors": [{"narration": "Proche."}], "sinon": []},
+            {"effets": {"confiance": -1, "indice": True}},
+        ], choix={"question": {"narration": "Et maintenant ?"},
+                  "options": [{"libelle": "Rester", "si": "indice", "destination": "B"},
+                              {"libelle": "Partir", "effets": {"confiance": 2}, "destination": "B"}]})
+        texte = fiches.generer(projet(a, scene("B")))["game/story/chapitre_divers.rpy"]
+        attendu = [
+            "label a:",
+            "    scene salon with fade",
+            "    show lena sourire at right with dissolve",
+            '    lena "Elle a dit \\"oui\\"."',
+            "    if confiance >= 2:",
+            '        "Proche."',
+            "    else:",
+            "        pass",
+            "    $ confiance -= 1",
+            "    $ indice = True",
+            "    menu:",
+            '        "Et maintenant ?"',
+            '        "Rester" if indice:',
+            "            jump b",
+            '        "Partir":',
+            "            $ confiance += 2",
+        ]
+        for ligne in attendu:
+            self.assertIn(ligne + "\n", texte + "\n")
+
+    def test_ecriture_protegee_et_nettoyage(self):
+        with tempfile.TemporaryDirectory() as dossier:
+            racine = Path(dossier)
+            story = racine / "game" / "story"
+            story.mkdir(parents=True)
+            (story / "manuel.rpy").write_text("label a:\n    return\n", encoding="utf-8")
+            (story / "chapitre_99.rpy").write_text(f"# {fiches.MARQUEUR}\n", encoding="utf-8")
+            (racine / "game" / "galerie.json").write_text("{}", encoding="utf-8")
+            p = projet(scene("A"), racine=racine)
+
+            rapport, _ = verifier(p)
+            self.assertTrue(contient(rapport.erreurs, "manuel.rpy", "définit aussi « a »"))
+
+            rapport = fiches.Rapport()
+            ecrits, supprimes = fiches.ecrire(p, fiches.generer(p), rapport)
+            self.assertTrue(contient(rapport.erreurs, "game/galerie.json", "écrit à la main"))
+            self.assertEqual(supprimes, ["game/story/chapitre_99.rpy"])
+            self.assertIn("game/story/chapitre_divers.rpy", ecrits)
+
+            rapport = fiches.Rapport()
+            fiches.ecrire(p, fiches.generer(p), rapport, remplacer=True)
+            self.assertEqual(rapport.erreurs, [])
+            self.assertIn("entrees", json.loads((racine / "game" / "galerie.json").read_text(encoding="utf-8")))
+
+
+class Provisoires(unittest.TestCase):
+    def test_images_provisoires_puis_remplacees(self):
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as dossier:
+            racine = Path(dossier)
+            (racine / "game" / "images").mkdir(parents=True)
+            p = projet(scene("A", contenu=[{"decor": "salon"}, {"montrer": "lena sourire"}]), racine=racine)
+
+            crees, retires = fiches.provisoires(p)
+            self.assertEqual(sorted(crees), ["game/images/provisoires/lena sourire.png", "game/images/provisoires/salon.png"])
+            self.assertEqual(retires, [])
+            self.assertEqual(Image.open(racine / "game/images/provisoires/salon.png").size, (1920, 1080))
+            self.assertEqual(Image.open(racine / "game/images/provisoires/lena sourire.png").size, (620, 940))
+            self.assertIn("2 provisoires", fiches.production(p)[1])
+
+            # Une image définitive arrive : la provisoire disparaît.
+            definitive = racine / "game" / "images" / "salon.png"
+            definitive.write_bytes((racine / "game/images/provisoires/salon.png").read_bytes())
+            crees, retires = fiches.provisoires(p)
+            self.assertEqual((crees, retires), ([], ["game/images/provisoires/salon.png"]))
+            self.assertIn("1 définitives, 1 provisoires", fiches.production(p)[1])
+
+
+if __name__ == "__main__":
+    unittest.main()

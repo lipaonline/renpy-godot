@@ -1,0 +1,28 @@
+id: CH01_SC01
+titre: L'arrivée
+lieu: rue
+moment: nuit
+personnages: [moi]
+objectif_narratif:
+  - installer_l_ambiance
+  - proposer_l_indice_de_la_photo
+resume: Sous la pluie, le protagoniste arrive devant l'immeuble de Léna et peut remarquer une vieille photo dans la boîte aux lettres.
+
+contenu:
+  - decor: rue_nuit
+    transition: fade
+  - narration: "Il pleut depuis des heures quand j'arrive enfin devant l'immeuble."
+  - moi: "Troisième étage… C'est ici."
+
+choix:
+  - id: monter
+    libelle: "Monter directement"
+    effets: {relation_lena: 1}
+    destination: CH01_SC02
+
+  - id: boite
+    libelle: "Regarder la boîte aux lettres"
+    effets: {indice_photo: true}
+    contenu:
+      - narration: "Une vieille photo dépasse de la fente. Un homme devant un chantier… mon père ?"
+    destination: CH01_SC02

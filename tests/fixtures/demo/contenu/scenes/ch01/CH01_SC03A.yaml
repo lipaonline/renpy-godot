@@ -1,0 +1,22 @@
+id: CH01_SC03A
+titre: La confiance
+lieu: appartement_lena
+moment: soir
+personnages: [lena]
+objectif_narratif:
+  - rapprochement_avec_lena
+resume: Touchée par sa confiance, Léna se rapproche de lui (scène animée).
+conditions:
+  - relation_lena >= 4
+
+contenu:
+  - montrer: lena rougit
+  - lena: "Merci. Ça compte pour moi, tu sais."
+  - video: videos/lena_scene_01.webm
+
+galerie:
+  titre: La confiance de Léna
+  vignette: lena rougit
+  video: videos/lena_scene_01.webm
+
+suite: CH01_SC04

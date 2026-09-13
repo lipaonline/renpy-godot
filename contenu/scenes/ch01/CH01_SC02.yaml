@@ -1,0 +1,45 @@
+id: CH01_SC02
+titre: L'appartement de Léna
+lieu: appartement_lena
+moment: soir
+personnages: [moi, lena]
+objectif_narratif:
+  - premiere_rencontre_avec_lena
+  - choisir_entre_confiance_et_enquete
+resume: Léna accueille le protagoniste. S'il a vu la photo, il peut l'interroger ; sinon, lui faire confiance ou repartir.
+
+contenu:
+  - decor: appartement_soir
+    transition: dissolve
+  - montrer: lena sourire
+    position: right
+    transition: dissolve
+  - lena: "Je ne pensais pas que tu viendrais."
+  - si: indice_photo
+    alors:
+      - moi: "Il y avait une photo dans ta boîte aux lettres."
+      - lena: "Tu as l'œil. On en reparlera."
+
+choix:
+  question:
+    lena: "Alors… tu restes un peu ?"
+  options:
+    - id: confiance
+      libelle: "Lui faire confiance"
+      effets: {relation_lena: 2}
+      destination: CH01_SC03A
+
+    - id: interroger
+      libelle: "L'interroger sur la photo"
+      si: indice_photo
+      effets: {mystere: 1}
+      destination: CH01_SC03B
+
+    - id: repartir
+      libelle: "Repartir sous la pluie"
+      effets: {relation_lena: -2}
+      contenu:
+        - cacher: lena
+          transition: dissolve
+        - pause: 1.0
+      destination: CH01_SC05

@@ -1,0 +1,64 @@
+# Bible narrative du jeu de démo : source de vérité des personnages, lieux et variables.
+# Format : contenu/LISEZMOI.md. Contrôle : .venv/bin/python tools/fiches.py verifier
+
+titre: La photo (démo)
+debut: CH01_SC01
+
+synopsis: >-
+  Sous la pluie, le protagoniste rend visite à Léna, la voisine de son père disparu. Une vieille photo
+  glissée dans la boîte aux lettres pourrait tout changer : lui faire confiance, ou l'interroger ?
+
+mystere_central:
+  question: Pourquoi une photo du père se trouve-t-elle dans la boîte aux lettres de Léna ?
+  verite: >-
+    Léna a travaillé avec lui sur un chantier. Elle sait pourquoi il est parti, mais elle a promis de se taire.
+
+personnages:
+  moi:
+    nom: Moi
+    couleur: "#9ad0ff"
+    age: 24
+    role: protagoniste (le joueur, qui dit « je »)
+    biographie: Revient dans la ville de son enfance pour vider l'appartement de son père, disparu il y a dix ans.
+    personnalite: Méfiant, curieux, sarcastique quand il est mal à l'aise.
+    desirs: Comprendre pourquoi son père est parti.
+
+  lena:
+    nom: Léna
+    couleur: "#c8a2ff"
+    age: 27
+    role: voisine du troisième étage
+    biographie: Photographe, installée dans l'immeuble depuis douze ans.
+    personnalite: Chaleureuse, secrète, directe quand on la pousse.
+    desirs: Tourner la page sans trahir une promesse.
+    limites: Refuse qu'on fouille chez elle ; ne parle du père que si la confiance est établie.
+    secrets:
+      - Elle a travaillé avec le père du protagoniste sur un chantier.
+    images: [lena sourire, lena rougit, lena serieuse]
+
+lieux:
+  rue:
+    description: Rue étroite sous la pluie, immeuble ancien aux fenêtres éclairées.
+    decors: [rue_nuit]
+  appartement_lena:
+    description: Salon encombré de tirages photo, grande fenêtre sur la ville.
+    decors: [appartement_soir]
+
+variables:
+  relation_lena:
+    defaut: 3
+    min: 0
+    max: 10
+    description: Confiance de Léna envers le protagoniste.
+  mystere:
+    defaut: 0
+    min: 0
+    description: Avancée de l'enquête sur le père.
+  indice_photo:
+    defaut: false
+    description: A vu la photo dans la boîte aux lettres.
+
+regles_editoriales:
+  - Dialogues courts ; le protagoniste dit « je », pas de narrateur omniscient.
+  - Chaque choix a une conséquence visible (variable, réplique ou scène).
+  - Les textes des fiches sont écrits entre guillemets.
