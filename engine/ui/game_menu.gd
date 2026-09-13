@@ -25,7 +25,8 @@ const TITLES := {
 	"preferences": "Préférences", "gallery": "Galerie",
 }
 
-## Données fournies par le lecteur : persistent, gallery, assets, history.
+## Données fournies par le lecteur : persistent, gallery, assets, history, languages,
+## language (langue affichée) et translate (traduction des titres de la galerie).
 var context: Dictionary = {}
 var in_game := false
 var page := ""
@@ -175,9 +176,9 @@ func _open(target: String) -> void:
 		"save", "load":
 			node.refresh(page)
 		"preferences":
-			node.refresh(context.persistent.preferences)
+			node.refresh(context.persistent.preferences, context.get("languages", []), context.get("language", ""))
 		"gallery":
-			node.refresh(context.get("gallery", []), context.persistent, context.assets)
+			node.refresh(context.get("gallery", []), context.persistent, context.assets, context.get("translate", Callable()))
 
 
 func _page(target: String) -> Control:

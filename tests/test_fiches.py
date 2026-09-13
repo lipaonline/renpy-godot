@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
+
 RACINE = Path(__file__).resolve().parent.parent
 DEMO = RACINE / "tests" / "fixtures" / "demo"
 sys.path.insert(0, str(RACINE / "tools"))
@@ -60,6 +62,9 @@ class ContenuDuJeu(unittest.TestCase):
             chemin = RACINE / relatif
             self.assertTrue(chemin.exists() and chemin.read_text(encoding="utf-8") == texte,
                             f"{relatif} n'est pas à jour : lancez tools/fiches.py generer")
+        for code in p.langues_cibles:
+            self.assertEqual(yaml.safe_load(fiches.traduire(p, code)[0]), p.traductions.get(code),
+                             f"contenu/traductions/{code}.yaml n'est pas à jour : lancez tools/fiches.py traduire {code}")
 
 
 class JeuDEssaiDemo(unittest.TestCase):
@@ -76,6 +81,7 @@ class JeuDEssaiDemo(unittest.TestCase):
         chapitre = produits["game/story/chapitre_01.rpy"]
         self.assertIn('        "L\'interroger sur la photo" if indice_photo:', chapitre)
         self.assertIn("    call ch01_souvenir", chapitre)
+        self.assertIn('    old "Lui faire confiance"\n    new "Trust her"', produits["game/tl/english/story/textes.rpy"])
         for relatif, texte in produits.items():
             self.assertEqual((DEMO / relatif).read_text(encoding="utf-8"), texte, f"jeu d'essai {relatif} à régénérer")
 
@@ -231,6 +237,123 @@ class Generation(unittest.TestCase):
             fiches.ecrire(p, fiches.generer(p), rapport, remplacer=True)
             self.assertEqual(rapport.erreurs, [])
             self.assertIn("entrees", json.loads((racine / "game" / "galerie.json").read_text(encoding="utf-8")))
+
+
+class Traductions(unittest.TestCase):
+    @staticmethod
+    def projet_traduit():
+        a = scene("A", contenu=[{"narration": "Il pleut."}, {"lena": "Il pleut."}, {"narration": "Il pleut."},
+                                {"narration": "Valeur : [confiance]."}],
+                  choix={"question": {"lena": "Tu restes ?"},
+                         "options": [{"libelle": "Oui", "effets": {"confiance": 1}, "destination": "B"},
+                                     {"libelle": "Non", "destination": "B"}]},
+                  galerie={"titre": "Souvenir", "images": ["salon"]})
+        return projet(a, scene("B"), langues={"source": "fr", "traductions": ["en"]})
+
+    @staticmethod
+    def traduire_tout(p, prefixe="EN "):
+        donnees = yaml.safe_load(fiches.traduire(p, "en")[0])
+        for entree in donnees["repliques"].values():
+            entree["texte"] = prefixe + entree["source"]
+        for entree in donnees["textes"]:
+            entree["texte"] = prefixe + entree["source"]
+        p.traductions["en"] = donnees
+        return donnees
+
+    def test_identifiants_stables_et_uniques(self):
+        p = self.projet_traduit()
+        ids = [replique.rid for replique in fiches.repliques(p)]
+        self.assertEqual(ids, [replique.rid for replique in fiches.repliques(p)])
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(ids[2], ids[0] + "_1", "même réplique répétée dans la scène : suffixe")
+        self.assertNotEqual(ids[0], ids[1], "même texte, autre personnage : autre identifiant")
+        produits = fiches.generer(p)
+        chapitre = produits["game/story/chapitre_divers.rpy"]
+        self.assertIn(f'    "Il pleut." id {ids[0]}\n', chapitre)
+        self.assertIn(f'        lena "Tu restes ?" id {ids[4]}\n', chapitre)
+        self.assertIn('define lena = Character(_("Léna"), color="#c8a2ff")', produits[fiches.FICHIER_BIBLE_RPY])
+        sans_traduction = fiches.generer(projet(scene("A", contenu=[{"narration": "Il pleut."}])))
+        self.assertNotIn(" id ", sans_traduction["game/story/chapitre_divers.rpy"])
+        self.assertFalse(any(relatif.startswith("game/tl/") for relatif in sans_traduction))
+
+    def test_traduire_puis_generer(self):
+        p = self.projet_traduit()
+        rapport, _ = verifier(p)
+        self.assertTrue(contient(rapport.avertissements, "en.yaml", "absent"))
+        _, bilan = fiches.traduire(p, "en")
+        self.assertEqual((bilan["repliques"], bilan["textes"], bilan["a_traduire"]), (5, 5, 10))
+        donnees = self.traduire_tout(p)
+        ids = list(donnees["repliques"])
+        donnees["repliques"][ids[3]]["texte"] = "Value: [confiance]."
+        for entree in donnees["textes"]:
+            entree["texte"] = {"Oui": "Yes", "Non": "No"}.get(entree["source"], entree["texte"])
+        rapport, exploration = verifier(p)
+        self.assertEqual((rapport.erreurs, rapport.avertissements), ([], []))
+        produits = fiches.generer(p, exploration)
+        tl = produits["game/tl/english/story/chapitre_divers.rpy"]
+        self.assertIn(f"translate english {ids[0]}:\n\n    # \"Il pleut.\"\n    \"EN Il pleut.\"\n", tl)
+        self.assertIn('    lena "EN Tu restes ?"', tl)
+        self.assertIn('    old "Oui"\n    new "Yes"', produits["game/tl/english/story/textes.rpy"])
+        self.assertEqual(json.loads(produits[fiches.FICHIER_LANGUES])["traductions"],
+                         [{"code": "en", "renpy": "english", "nom": "English"}])
+        for route in json.loads(produits[fiches.FICHIER_ROUTES])["routes"]:
+            self.assertEqual(route["choix_traduits"]["en"], [{"Oui": "Yes", "Non": "No"}[c] for c in route["choix"]])
+        tests_renpy = produits[fiches.FICHIER_TESTS_RENPY]
+        self.assertIn('    run Language("english")\n    pause 0.5\n    run Start()', tests_renpy)
+        self.assertIn('    click "Yes"', tests_renpy)
+
+    def test_texte_change_reprise_a_revoir_et_obsoletes(self):
+        p = self.projet_traduit()
+        self.traduire_tout(p)
+        contenu = p.scenes["A"]["contenu"]
+        contenu[3] = {"narration": "Valeur actuelle : [confiance]."}
+        del contenu[1]
+        p.scenes["A"]["choix"]["options"].append({"libelle": "Peut-être", "destination": "B"})
+        texte, bilan = fiches.traduire(p, "en")
+        nouveau = yaml.safe_load(texte)
+        corrigee = [entree for entree in nouveau["repliques"].values() if entree["source"].startswith("Valeur actuelle")][0]
+        self.assertEqual((corrigee["texte"], corrigee["a_revoir"]), ("EN Valeur : [confiance].", "Valeur : [confiance]."))
+        self.assertEqual((bilan["a_revoir"], bilan["a_traduire"], bilan["obsoletes"]), (1, 1, 1))
+        self.assertEqual([(entree["source"], entree["texte"]) for entree in nouveau["obsoletes"]], [("Il pleut.", "EN Il pleut.")])
+        p.traductions["en"] = nouveau
+        rapport, _ = verifier(p)
+        self.assertTrue(contient(rapport.avertissements, "1 réplique(s) ou texte(s) à traduire"))
+        self.assertTrue(contient(rapport.avertissements, "1 traduction(s) à revoir"))
+        self.assertEqual(yaml.safe_load(fiches.traduire(p, "en")[0]), nouveau, "traduire est stable")
+
+    def test_erreurs_de_traduction(self):
+        p = self.projet_traduit()
+        donnees = self.traduire_tout(p)
+        ids = list(donnees["repliques"])
+        donnees["repliques"][ids[3]]["texte"] = "Value: [inconnue]."
+        donnees["repliques"][ids[0]]["texte"] = "{i}Rain.{/i}"
+        for entree in donnees["textes"]:
+            if entree["source"] in ("Oui", "Non"):
+                entree["texte"] = "Same"
+        rapport, _ = verifier(p)
+        self.assertTrue(contient(rapport.erreurs, ids[3], "[inconnue]"))
+        self.assertTrue(contient(rapport.erreurs, "A : deux choix du même menu", "« Same »"))
+        self.assertTrue(contient(rapport.avertissements, ids[0], "balises"))
+        self.assertTrue(contient(rapport.avertissements, ids[3], "[variables]"))
+
+    def test_langues_de_la_bible(self):
+        rapport, _ = verifier(projet(scene("A"), langues={"source": "fr", "traductions": ["xx", "fr"]}))
+        self.assertTrue(contient(rapport.erreurs, "code de langue inconnu 'xx'"))
+        self.assertTrue(contient(rapport.erreurs, "« fr » est déjà la langue source"))
+
+    def test_importer_une_reponse_et_paquet(self):
+        p = self.projet_traduit()
+        p.traductions["en"] = yaml.safe_load(fiches.traduire(p, "en")[0])
+        rid = fiches.repliques(p)[0].rid
+        reponse = (f"```yaml\nrepliques:\n  {rid}:\n    texte: \"It rains.\"\n  inconnue_12345678:\n    texte: \"x\"\n"
+                   "textes:\n  - source: \"Oui\"\n    texte: \"Yes\"\n```\n")
+        self.assertEqual(fiches.importer_traductions(p, "en", reponse), 2)
+        lignes, textes = fiches.traductions_de(p, "en")
+        self.assertEqual((lignes[rid], textes["Oui"]), ("It rains.", "Yes"))
+        paquet = fiches.paquet_traduction(p, "en", yaml.safe_load(fiches.traduire(p, "en")[0]))
+        self.assertIn("- Oui → Yes", paquet)
+        self.assertNotIn(f"  {rid}:", paquet)
+        self.assertIn("```yaml\nrepliques:", paquet)
 
 
 class Provisoires(unittest.TestCase):

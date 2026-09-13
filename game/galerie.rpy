@@ -54,7 +54,7 @@ screen galerie():
 
     tag menu
 
-    use game_menu(_("Galerie")):
+    use game_menu(_("Gallery")):
 
         vpgrid:
             cols 3
@@ -62,7 +62,8 @@ screen galerie():
 
             for entree in galerie_entrees:
                 $ debloquee = renpy.seen_label(entree["label"])
-                $ titre = entree["titre"] if debloquee else "???"
+                # Titre traduit par game/tl/<langue>/story/textes.rpy (tools/fiches.py).
+                $ titre = __(entree["titre"]) if debloquee else "???"
 
                 button:
                     xysize (430, 310)
@@ -80,7 +81,7 @@ screen galerie():
                             if debloquee:
                                 add Transform(entree["vignette"], fit="contain", xysize=(400, 225)) align (0.5, 0.5)
                             else:
-                                text _("Verrouillé") align (0.5, 0.5) color gui.insensitive_color
+                                text _("Locked") align (0.5, 0.5) color gui.insensitive_color
 
                         text titre:
                             substitute False

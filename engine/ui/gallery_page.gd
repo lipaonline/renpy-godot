@@ -20,7 +20,8 @@ func _init() -> void:
 	add_child(_grid)
 
 
-func refresh(entries: Array, persistent: Variant, assets: Variant) -> void:
+## translate : traduction des titres (game/tl/<langue>/story/textes.rpy), sinon titres d'origine.
+func refresh(entries: Array, persistent: Variant, assets: Variant, translate := Callable()) -> void:
 	for child in _grid.get_children():
 		_grid.remove_child(child)
 		child.queue_free()
@@ -28,10 +29,11 @@ func refresh(entries: Array, persistent: Variant, assets: Variant) -> void:
 		_grid.add_child(Style.label("Aucune entrée dans game/galerie.json.", Style.INTERFACE_SIZE, Style.IDLE))
 		return
 	for entry in entries:
-		_grid.add_child(_tile(entry, persistent.is_label_seen(entry.label), assets))
+		var title: String = translate.call(entry.title) if translate.is_valid() else entry.title
+		_grid.add_child(_tile(entry, title, persistent.is_label_seen(entry.label), assets))
 
 
-func _tile(entry: Dictionary, unlocked: bool, assets: Variant) -> Button:
+func _tile(entry: Dictionary, title_text: String, unlocked: bool, assets: Variant) -> Button:
 	var button := Button.new()
 	button.focus_mode = FOCUS_NONE
 	button.disabled = not unlocked
@@ -65,7 +67,8 @@ func _tile(entry: Dictionary, unlocked: bool, assets: Variant) -> Button:
 		picture.add_child(lock)
 	column.add_child(picture)
 
-	var title := Style.label(entry.title if unlocked else "???", 24, Style.IDLE_SMALL if unlocked else Style.INSENSITIVE)
+	var title := Style.label(title_text if unlocked else "???", 24, Style.IDLE_SMALL if unlocked else Style.INSENSITIVE)
+	title.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # déjà traduit par l'histoire
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(title)
 	return button

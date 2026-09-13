@@ -8,13 +8,14 @@ A small demo game written **once** and played identically by **Ren'Py 8.5** and 
 |---|---|
 | ![The demo in Ren'Py](docs/captures/renpy_demo.png) | ![The same scene in Godot](docs/captures/godot_demo.png) |
 
-> Every document exists in English and in French. The demo game is in French, and so are the tool commands and the scene-sheet keys (`verifier` = check, `generer` = generate, `titre` = title…); the documentation translates them.
+> Every document exists in English and in French. The demo game is written in French and translated into English (Preferences → Language). The tool commands and the scene-sheet keys are in French (`verifier` = check, `generer` = generate, `traduire` = translate, `titre` = title…); the documentation translates them.
 
 ## What's inside
 
-- **A demo game**: 7 scenes, 2 endings, a video and an unlockable gallery. It lives in [contenu/](contenu/).
+- **A demo game**: 7 scenes, 2 endings, a video and an unlockable gallery, playable in French and English. It lives in [contenu/](contenu/).
 - **A writing toolchain.** A story bible (characters, locations, variables) and YAML scene sheets are turned into a `.rpy` script shared by both engines (`tools/fiches.py`). Every route is checked before generation: entry conditions, variables, dead ends, choices that are never offered.
 - **A Godot player** that runs this script with the same interface as Ren'Py: main menu, saves with thumbnails, history, rollback, skip and auto-forward, preferences, gallery.
+- **Translations.** The sheets are written in one language; each translation has its own file (`contenu/traductions/en.yaml`), kept up to date by `traduire`, which flags new and changed lines. Both engines read the same Ren'Py translation files (`game/tl/`), and the player chooses the language in the preferences.
 - **Tests on both sides.** Play-through routes are generated from the scene sheets; Godot and Ren'Py replay the same routes and must reach the same ending.
 
 ## Getting started
@@ -52,6 +53,7 @@ The first time, you can also open the project from the Ren'Py launcher.
 .venv/bin/python tools/fiches.py production            # list of images and videos to produce
 .venv/bin/python tools/fiches.py graphe                # route graph (Mermaid)
 .venv/bin/python tools/fiches.py contexte CH01_SC02    # context pack for writing a scene
+.venv/bin/python tools/fiches.py traduire en           # update the English translation file
 python3 tools/convertir_videos.py                      # .webm → .ogv for Godot
 ```
 
@@ -80,8 +82,10 @@ $RENPY_SDK/renpy.sh . test --overwrite-screenshots                 # routes and 
 
 ```
 contenu/          story bible and scene sheets: this is where you write the game
+  traductions/    one file per translation (en.yaml…)
 game/             Ren'Py "game" folder, shared with Godot
   story/          .rpy script generated from contenu/ (do not edit by hand)
+  tl/             translations read by both engines: generated lines (english/story/), Ren'Py interface
   images/, videos/  media: .webm for Ren'Py, .ogv for Godot
   gui/, *.rpy     Ren'Py interface; Godot reuses its images
 engine/           Godot player: compiler, interpreter, interface

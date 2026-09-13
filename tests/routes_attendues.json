@@ -12,6 +12,12 @@
         "relation_lena": 6,
         "mystere": 0,
         "indice_photo": false
+      },
+      "choix_traduits": {
+        "en": [
+          "Go straight up",
+          "Trust her"
+        ]
       }
     },
     {
@@ -25,6 +31,12 @@
         "relation_lena": 1,
         "mystere": 0,
         "indice_photo": true
+      },
+      "choix_traduits": {
+        "en": [
+          "Check the letterbox",
+          "Leave in the rain"
+        ]
       }
     },
     {
@@ -38,6 +50,12 @@
         "relation_lena": 3,
         "mystere": 2,
         "indice_photo": true
+      },
+      "choix_traduits": {
+        "en": [
+          "Check the letterbox",
+          "Ask her about the photo"
+        ]
       }
     }
   ]

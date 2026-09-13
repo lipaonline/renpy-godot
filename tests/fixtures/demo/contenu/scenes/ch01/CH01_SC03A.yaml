@@ -5,7 +5,7 @@ moment: soir
 personnages: [lena]
 objectif_narratif:
   - rapprochement_avec_lena
-resume: Touchée par sa confiance, Léna se rapproche de lui (scène animée).
+resume: Touchée par sa confiance, Léna se confie (scène animée).
 conditions:
   - relation_lena >= 4
 

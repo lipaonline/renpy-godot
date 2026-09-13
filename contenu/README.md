@@ -10,6 +10,7 @@ The file format uses French keys (`titre` = title, `lieu` = location, `personnag
 contenu/
 ├── bible.yaml          characters, locations, variables, editorial rules
 ├── scenes/…/*.yaml     one sheet per scene (free subfolders: ch01/, ch02/…)
+├── traductions/*.yaml  one file per translation (en.yaml…), updated by traduire
 ├── production.md       (generated) images and videos to produce
 └── graphe.md           (generated) route graph
 ```
@@ -30,6 +31,7 @@ python3 -m venv .venv
 5. **Generation.** `.venv/bin/python tools/fiches.py generer` writes `game/story/*.rpy` and `game/galerie.json`, then has the Godot compiler re-read the result.
 6. **Tracking.** `production` (images and videos to render) and `graphe` (routes as Mermaid).
 7. **Placeholder media.** `provisoires` creates an image (in `game/images/provisoires/`) or a video for every missing asset, so the game stays playable. As soon as a final image with the same name arrives in `game/images/`, the placeholder is removed; a replaced video is recognised by its content. `production` tells final, placeholder and missing apart.
+8. **Translation.** `traduire en` (translate) adds the new lines and texts to `traductions/en.yaml`. Fill in `texte`, then run `generer`, which writes `game/tl/english/story/`. See [Translations](#translations).
 
 ## Generated tests
 
@@ -38,7 +40,7 @@ python3 -m venv .venv
 - `tests/routes_attendues.json`: Godot replays each route and must reach the same ending and the same final variable state as the Python explorer;
 - `game/tests_routes.rpy`: Ren'Py replays the same routes by clicking the choices, then opens the gallery after unlocking all of its entries.
 
-These tests follow the story automatically: nothing needs updating by hand when the sheets change.
+Both engines replay the routes in every language of the game, clicking the translated choices. These tests follow the story automatically: nothing needs updating by hand when the sheets change.
 
 ## Bible (`bible.yaml`)
 
@@ -50,6 +52,7 @@ These tests follow the story automatically: nothing needs updating by hand when 
 | `variables.<name>` | `defaut` (default: number, boolean or text), `min` and `max` (numbers), `description`. |
 | `regles_editoriales` | Editorial rules, repeated in the writing context. |
 | `synopsis`, `mystere_central` | Optional; included in the writing context. |
+| `langues` (languages) | `source`: language of the sheets (`fr` by default). `traductions`: list of translation codes (`en`, `es`, `de`, `it`, `pt`, `nl`, `pl`, `ru`, `ja`, `ko`, `zh`). |
 
 ## Scene sheet
 
@@ -87,6 +90,30 @@ These tests follow the story automatically: nothing needs updating by hand when 
 
 **Texts:** `[variable]` inserts a value; Ren'Py tags `{i}…{/i}`, `{b}…{/b}`.
 
+## Translations
+
+Each code listed in `langues.traductions` has its file `traductions/<code>.yaml`, created and updated by `.venv/bin/python tools/fiches.py traduire <code>`:
+
+```yaml
+repliques:                      # lines, by identifier
+  ch01_sc02_14e17bdd:
+    qui: lena                   # who speaks (for information)
+    source: "Je ne pensais pas que tu viendrais."   # original text: do not edit
+    texte: "I didn't think you'd come."             # translation; empty = not translated yet
+textes:                         # names, choices and gallery titles, by original text
+  - source: "Lui faire confiance"
+    texte: "Trust her"
+```
+
+- **Identifiers.** Each line gets an identifier computed from its scene, its speaker and its text. `generer` writes it into the script (`lena "…" id ch01_sc02_14e17bdd`). Adding lines elsewhere does not change it.
+- **Changes.** When a sheet changes, run `traduire` again:
+  - new lines and texts are added with an empty `texte`;
+  - if an original text changed, its translation is kept and marked `a_revoir` (to review), with the old original: check the translation, then delete the `a_revoir` line;
+  - translations that no longer match anything move to `obsoletes`.
+- **Missing translations** are not an error: the game shows the original text. `verifier` counts them.
+- **Translator or AI.** `traduire en --paquet traduction.md` writes a pack: instructions, characters, glossary and entries to translate. Save the answer to a file and import it with `traduire en --importer reponse.yaml`.
+- **Generated files.** `generer` writes the translated lines to `game/tl/<language>/story/chapitre_XX.rpy` (Ren'Py `translate` blocks), and the texts to `textes.rpy` (`translate strings`). Ren'Py and Godot both read them.
+
 ## YAML pitfalls
 
 - Put **every text between quotes**: otherwise a sentence containing ": " breaks the file.
@@ -103,4 +130,5 @@ These tests follow the story automatically: nothing needs updating by hand when 
   - menus with no available choice;
   - scenes never reached and choices never offered;
   - a story with no ending.
+- **Translations:** lines and texts to translate or to review, `[variables]` and `{tags}` kept, choices of a menu still distinct once translated, entries that no longer match the script.
 - **Script:** no hand-written `.rpy` redefines a label or a variable produced by the sheets. Hand-written files are never overwritten without `--remplacer` (replace).

@@ -4,12 +4,14 @@ extends Control
 
 const Style = preload("res://engine/ui/ui_style.gd")
 const Assets = preload("res://engine/assets.gd")
+const Texts = preload("res://engine/ui/traductions_interface.gd")
 
 var _image: TextureRect
 var _video: VideoStreamPlayer
 var _notice: Label
 var _pending: Array = []
 var _assets: Variant
+var _video_missing := false
 
 
 func _init() -> void:
@@ -45,11 +47,13 @@ func open(entry: Dictionary, assets: Variant) -> void:
 	_assets = assets
 	_notice.text = ""
 	_image.texture = null
+	_video_missing = false
 	visible = true
 	if entry.video != "":
 		var stream := Assets.video_stream(entry.video)
 		if stream == null:
-			_notice.text = "Vidéo introuvable : %s" % Assets.ogv_path(entry.video).trim_prefix("res://")
+			_notice.text = Texts.t("Vidéo introuvable : %s") % Assets.ogv_path(entry.video).trim_prefix("res://")
+			_video_missing = true
 			return
 		_video.stream = stream
 		_video.visible = true
@@ -75,7 +79,7 @@ func _show_next() -> void:
 		return
 	var image_name: String = _pending.pop_front()
 	_image.texture = _assets.image_texture(image_name)
-	_notice.text = "" if _image.texture != null else "[ image manquante : %s ]" % image_name
+	_notice.text = "" if _image.texture != null else Texts.t("[ image manquante : %s ]") % image_name
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -83,7 +87,7 @@ func _gui_input(event: InputEvent) -> void:
 	if mouse == null or not mouse.pressed or mouse.button_index != MOUSE_BUTTON_LEFT:
 		return
 	accept_event()
-	if _video.visible or _notice.text.begins_with("Vidéo"):
+	if _video.visible or _video_missing:
 		close()
 	else:
 		_show_next()

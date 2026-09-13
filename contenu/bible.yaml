@@ -4,6 +4,11 @@
 titre: La photo (démo)
 debut: CH01_SC01
 
+# Les fiches sont écrites en français ; chaque traduction a son fichier contenu/traductions/<code>.yaml.
+langues:
+  source: fr
+  traductions: [en]
+
 synopsis: >-
   Sous la pluie, le protagoniste rend visite à Léna, la voisine de son père disparu. Une vieille photo
   glissée dans la boîte aux lettres pourrait tout changer : lui faire confiance, ou l'interroger ?

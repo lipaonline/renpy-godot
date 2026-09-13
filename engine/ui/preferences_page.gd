@@ -1,9 +1,11 @@
-## Préférences : vitesse du texte, avance automatique, avance rapide, affichage et volumes.
+## Préférences : vitesse du texte, avance automatique, avance rapide, affichage, volumes
+## et langue du jeu.
 extends GridContainer
 
 signal changed(key: String, value: Variant)
 
 const Style = preload("res://engine/ui/ui_style.gd")
+const Texts = preload("res://engine/ui/traductions_interface.gd")
 ## Position la plus à droite du curseur de vitesse : texte instantané (text_cps = 0, défaut Ren'Py).
 const INSTANT_CPS := 150.0
 
@@ -17,6 +19,8 @@ var _music_title: Label
 var _music: HSlider
 var _sound_title: Label
 var _sound: HSlider
+var _language_title: Label
+var _languages: HBoxContainer
 
 
 func _init() -> void:
@@ -49,8 +53,16 @@ func _init() -> void:
 	_sound = _slider(0.0, 1.0, 0.05)
 	_sound.value_changed.connect(func(value: float) -> void: _on_volume("sound_volume", value))
 
+	_language_title = _title("Langue")
+	_languages = HBoxContainer.new()
+	_languages.mouse_filter = MOUSE_FILTER_IGNORE
+	_languages.add_theme_constant_override("separation", 40)
+	add_child(_languages)
 
-func refresh(preferences: Dictionary) -> void:
+
+## languages : [{code, nom}] (game/langues.json) ; la ligne Langue n'apparaît qu'à partir de deux.
+## language : langue affichée (celle de --langue, sinon la préférence).
+func refresh(preferences: Dictionary, languages: Array = [], language := "") -> void:
 	var cps: float = preferences.text_cps
 	_text_speed.set_value_no_signal(INSTANT_CPS if cps <= 0.0 else cps)
 	_auto_delay.set_value_no_signal(preferences.auto_delay)
@@ -59,14 +71,35 @@ func refresh(preferences: Dictionary) -> void:
 	_music.set_value_no_signal(preferences.music_volume)
 	_sound.set_value_no_signal(preferences.sound_volume)
 	_update_titles()
+	_refresh_languages(languages, language if language != "" else str(preferences.get("language", "")))
+
+
+func _refresh_languages(languages: Array, current: String) -> void:
+	for child in _languages.get_children():
+		_languages.remove_child(child)
+		child.queue_free()
+	_language_title.visible = languages.size() > 1
+	_languages.visible = languages.size() > 1
+	for language in languages:
+		# Chaque langue est écrite dans sa propre langue : pas de traduction.
+		var button := Style.text_button(language.nom)
+		button.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+		button.toggle_mode = true
+		button.set_pressed_no_signal(language.code == current)
+		button.pressed.connect(func() -> void: changed.emit("language", language.code))
+		_languages.add_child(button)
 
 
 func _update_titles() -> void:
 	var cps := _text_speed.value
-	_text_title.text = "Vitesse du texte : %s" % ("instantané" if cps >= INSTANT_CPS else "%d car./s" % int(cps))
-	_auto_title.text = "Avance automatique : %s s" % String.num(_auto_delay.value, 1).replace(".", ",")
-	_music_title.text = "Musique : %d %%" % roundi(_music.value * 100.0)
-	_sound_title.text = "Sons : %d %%" % roundi(_sound.value * 100.0)
+	var speed := Texts.t("instantané") if cps >= INSTANT_CPS else Texts.t("%d car./s") % int(cps)
+	_text_title.text = Texts.t("Vitesse du texte : %s") % speed
+	var delay := String.num(_auto_delay.value, 1)
+	if TranslationServer.get_locale().begins_with("fr"):
+		delay = delay.replace(".", ",")
+	_auto_title.text = Texts.t("Avance automatique : %s s") % delay
+	_music_title.text = Texts.t("Musique : %d %%") % roundi(_music.value * 100.0)
+	_sound_title.text = Texts.t("Sons : %d %%") % roundi(_sound.value * 100.0)
 
 
 func _on_text_speed(value: float) -> void:

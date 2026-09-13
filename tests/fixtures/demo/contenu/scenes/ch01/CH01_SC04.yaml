@@ -1,5 +1,5 @@
 id: CH01_SC04
-titre: Fin du prototype
+titre: Fin de la démo
 lieu: appartement_lena
 moment: soir
 personnages: []
@@ -8,7 +8,7 @@ resume: Bilan de la soirée selon la relation avec Léna et l'avancée de l'enqu
 contenu:
   - decor: appartement_soir
     transition: fade
-  - narration: "{i}Fin du prototype{/i} — relation avec Léna : [relation_lena], mystère : [mystere]."
+  - narration: "{i}Fin de la démo{/i} — relation avec Léna : [relation_lena], mystère : [mystere]."
   - si: relation_lena >= 5
     alors:
       - narration: "Léna m'a fait confiance ce soir."

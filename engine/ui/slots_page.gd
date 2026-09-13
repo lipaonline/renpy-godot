@@ -6,6 +6,7 @@ signal slot_chosen(slot: String)
 
 const Style = preload("res://engine/ui/ui_style.gd")
 const SaveSlots = preload("res://engine/save_slots.gd")
+const Texts = preload("res://engine/ui/traductions_interface.gd")
 const PAGES := ["quick", "1", "2", "3", "4", "5"]
 const COLUMNS := 3
 const ROWS := 2
@@ -97,11 +98,13 @@ func _slot_button(slot: String) -> Button:
 	picture.texture = SaveSlots.thumbnail(slot) if not info.is_empty() else null
 	column.add_child(picture)
 
-	var slot_title := "Sauvegarde rapide" if slot == "quick" else "Emplacement %s" % slot.get_slice("-", 1)
-	var heading := Style.label("%s — %s" % [slot_title, info.date] if not info.is_empty() else "%s — vide" % slot_title, 22, Style.IDLE_SMALL)
+	var slot_title := Texts.t("Sauvegarde rapide") if slot == "quick" else Texts.t("Emplacement %s") % slot.get_slice("-", 1)
+	var heading := Style.label("%s — %s" % [slot_title, info.date] if not info.is_empty() else Texts.t("%s — vide") % slot_title,
+		22, Style.IDLE_SMALL)
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(heading)
 	var description := Style.label(str(info.get("description", "")), 20, Style.TEXT)
+	description.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # réplique de l'histoire
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	description.custom_minimum_size.x = 384
 	description.clip_text = true

@@ -38,4 +38,8 @@ choix:
     - id: repartir
       libelle: "Repartir sous la pluie"
       effets: {relation_lena: -2}
+      contenu:
+        - cacher: lena
+          transition: dissolve
+        - pause: 1.0
       destination: CH01_SC05

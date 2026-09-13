@@ -9,6 +9,7 @@ sous-ensemble commun Ren'Py / Godot. Format : contenu/LISEZMOI.md.
   production        images et vidéos à produire → contenu/production.md
   graphe            graphe des routes (Mermaid) → contenu/graphe.md
   contexte SCENE    paquet de contexte pour écrire ou réviser une scène
+  traduire [LANGUE] met à jour contenu/traductions/<langue>.yaml (répliques et textes à traduire)
 
 Usage : .venv/bin/python tools/fiches.py <commande>
 """
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import difflib
 import hashlib
 import json
 import re
@@ -36,11 +38,24 @@ FICHIER_BIBLE_RPY = "game/story/personnages_et_variables.rpy"
 FICHIER_GALERIE = "game/galerie.json"
 FICHIER_ROUTES = "tests/routes_attendues.json"
 FICHIER_TESTS_RENPY = "game/tests_routes.rpy"
+FICHIER_LANGUES = "game/langues.json"
+DOSSIER_TRADUCTIONS = "contenu/traductions"
 DOSSIER_PROVISOIRES = "game/images/provisoires"
 LISTE_VIDEOS_PROVISOIRES = "game/videos/provisoires.txt"
 ROUTES_MAX = 12
 ## Âge minimum des personnages, réglable dans la bible par « age_minimum ».
 AGE_MINIMUM = 18
+## Langues possibles (bible, « langues ») : code → (nom de la traduction Ren'Py, nom affiché).
+LANGUES = {
+    "fr": ("french", "Français"), "en": ("english", "English"), "es": ("spanish", "Español"),
+    "de": ("german", "Deutsch"), "it": ("italian", "Italiano"), "pt": ("portuguese", "Português"),
+    "nl": ("dutch", "Nederlands"), "pl": ("polish", "Polski"), "ru": ("russian", "Русский"),
+    "ja": ("japanese", "日本語"), "ko": ("korean", "한국어"), "zh": ("schinese", "简体中文"),
+}
+LANGUE_SOURCE = "fr"
+CHAMPS_TRADUCTION = {"repliques", "textes", "obsoletes"}
+## Seuil de ressemblance pour reprendre une traduction quand son texte source a changé.
+SEUIL_REPRISE = 0.6
 
 TRANSITIONS = ("dissolve", "fade")
 POSITIONS = ("left", "center", "right", "truecenter")
@@ -67,6 +82,7 @@ IDENT = re.compile(r"^[a-z_][a-z0-9_]*$")
 ID_SCENE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 MOT_IMAGE = re.compile(r"^[A-Za-z0-9_]+( [A-Za-z0-9_]+)*$")
 INTERPOLATION = re.compile(r"\[([^\[\]]*)\]")
+BALISE = re.compile(r"\{/?[a-z_]+[^{}]*\}")
 NOEUDS_AUTORISES = (
     ast.Expression, ast.BoolOp, ast.And, ast.Or, ast.UnaryOp, ast.Not, ast.USub, ast.UAdd,
     ast.Compare, ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE, ast.In, ast.NotIn,
@@ -110,10 +126,21 @@ class Projet:
     bible: dict
     scenes: dict = field(default_factory=dict)
     fichiers: dict = field(default_factory=dict)
+    traductions: dict = field(default_factory=dict)  # code de langue → contenu de contenu/traductions/<code>.yaml
 
     @property
     def personnages(self) -> dict:
         return _dict(self.bible.get("personnages"))
+
+    @property
+    def langue_source(self) -> str:
+        return str(_dict(self.bible.get("langues")).get("source", LANGUE_SOURCE))
+
+    @property
+    def langues_cibles(self) -> list:
+        """Codes des traductions déclarées dans la bible (« langues.traductions »)."""
+        codes = _liste(_dict(self.bible.get("langues")).get("traductions"))
+        return [code for code in dict.fromkeys(codes) if code in LANGUES and code != self.langue_source]
 
     @property
     def variables(self) -> dict:
@@ -154,6 +181,10 @@ def charger(racine: Path, rapport: Rapport) -> Projet:
             continue
         projet.scenes[sid] = fiche
         projet.fichiers[sid] = ou
+    for code in projet.langues_cibles:
+        donnees = _lire_yaml(racine / DOSSIER_TRADUCTIONS / f"{code}.yaml", racine, rapport)
+        if donnees is not None:
+            projet.traductions[code] = donnees
     return projet
 
 
@@ -178,6 +209,8 @@ def verifier(projet: Projet, rapport: Rapport, limite: int = 20000):
     for sid in projet.ordre():
         _verifier_fiche(projet, sid, rapport)
     _verifier_conflits(projet, rapport)
+    if not rapport.erreurs:
+        _verifier_traductions(projet, rapport)
     if rapport.erreurs:
         return None
     return Explorateur(projet, rapport, limite).explorer()
@@ -233,6 +266,32 @@ def _verifier_bible(projet: Projet, rapport: Rapport):
             rapport.erreur(f"{ou}, lieu « {lid} »", "fiche attendue (description, decors)")
     if not isinstance(bible.get("regles_editoriales", []), list):
         rapport.erreur(ou, "« regles_editoriales » : liste attendue")
+    _verifier_langues(bible.get("langues"), rapport)
+
+
+def _verifier_langues(langues, rapport: Rapport):
+    ou = "contenu/bible.yaml, « langues »"
+    if langues is None:
+        return
+    codes = ", ".join(LANGUES)
+    if not isinstance(langues, dict) or set(langues) - {"source", "traductions"}:
+        rapport.erreur(ou, "attendu : source (langue des fiches) et traductions (liste de codes), "
+                           "par exemple {source: fr, traductions: [en]}")
+        return
+    source = langues.get("source", LANGUE_SOURCE)
+    if source not in LANGUES:
+        rapport.erreur(ou, f"langue source inconnue {source!r} (codes possibles : {codes})")
+    traductions = langues.get("traductions", [])
+    if not isinstance(traductions, list):
+        rapport.erreur(ou, "« traductions » : liste de codes attendue, par exemple [en]")
+        return
+    for code in traductions:
+        if code not in LANGUES:
+            rapport.erreur(ou, f"code de langue inconnu {code!r} (codes possibles : {codes})")
+        elif code == source:
+            rapport.erreur(ou, f"« {code} » est déjà la langue source")
+        elif traductions.count(code) > 1:
+            rapport.erreur(ou, f"« {code} » déclarée plusieurs fois")
 
 
 def _verifier_fiche(projet: Projet, sid: str, rapport: Rapport):
@@ -688,18 +747,20 @@ def routes_de_test(exploration: Exploration, maximum: int = ROUTES_MAX) -> list:
 # --- Génération ------------------------------------------------------------------------------
 
 def generer(projet: Projet, exploration: Exploration | None = None) -> dict:
-    """Renvoie {chemin relatif : contenu} de tous les fichiers produits ; avec
-    l'exploration, ajoute les tests de parcours pour Godot et Ren'Py."""
+    """Renvoie {chemin relatif : contenu} de tous les fichiers produits : script, galerie,
+    langues et traductions (game/tl/<langue>/story/) ; avec l'exploration, ajoute les
+    tests de parcours pour Godot et Ren'Py."""
+    avec_ids = bool(projet.langues_cibles)
     fichiers = {FICHIER_BIBLE_RPY: _rpy_bible(projet)}
-    chapitres: dict = {}
-    for sid in projet.ordre():
-        chapitres.setdefault(_chapitre(sid, projet.scenes[sid]), []).append(sid)
-    for chapitre, sids in sorted(chapitres.items()):
-        fichiers[f"game/story/chapitre_{chapitre}.rpy"] = _rpy_chapitre(projet, chapitre, sids)
+    for chapitre, sids in sorted(_chapitres(projet).items()):
+        fichiers[f"game/story/chapitre_{chapitre}.rpy"] = _rpy_chapitre(projet, chapitre, sids, avec_ids)
     fichiers[FICHIER_GALERIE] = _galerie_json(projet)
+    fichiers[FICHIER_LANGUES] = _langues_json(projet)
+    for code in projet.langues_cibles:
+        fichiers.update(_rpy_traduction(projet, code))
     if exploration is not None:
         routes = routes_de_test(exploration)
-        fichiers[FICHIER_ROUTES] = _routes_json(routes)
+        fichiers[FICHIER_ROUTES] = _routes_json(projet, routes)
         fichiers[FICHIER_TESTS_RENPY] = _tests_renpy(projet, routes)
     return fichiers
 
@@ -720,8 +781,10 @@ def ecrire(projet: Projet, fichiers: dict, rapport: Rapport, remplacer: bool = F
         chemin.parent.mkdir(parents=True, exist_ok=True)
         chemin.write_text(texte, encoding="utf-8")
         ecrits.append(relatif)
-    story = projet.racine / "game" / "story"
-    for chemin in sorted(story.rglob("*.rpy")) if story.is_dir() else []:
+    # Script et traductions générés devenus inutiles (scène, chapitre ou langue retirés).
+    generes = [chemin for dossier in ("game/story", "game/tl") if (projet.racine / dossier).is_dir()
+               for chemin in sorted((projet.racine / dossier).rglob("*.rpy"))]
+    for chemin in generes:
         relatif = chemin.relative_to(projet.racine).as_posix()
         if relatif not in fichiers and MARQUEUR in chemin.read_text(encoding="utf-8")[:400]:
             chemin.unlink()
@@ -739,10 +802,19 @@ def _chapitre(sid, fiche) -> str:
     return f"{int(trouve.group(1)):02d}" if trouve else "divers"
 
 
+def _chapitres(projet: Projet) -> dict:
+    """{chapitre : [scènes]}, scènes dans l'ordre."""
+    chapitres: dict = {}
+    for sid in projet.ordre():
+        chapitres.setdefault(_chapitre(sid, projet.scenes[sid]), []).append(sid)
+    return chapitres
+
+
 def _rpy_bible(projet: Projet) -> str:
     lignes = [f"# {MARQUEUR}", "# Personnages et variables : contenu/bible.yaml.", ""]
     for pid, personnage in projet.personnages.items():
-        arguments = [_chaine(personnage["nom"])]
+        # _() : le nom est traduit comme les autres textes de l'interface.
+        arguments = [f"_({_chaine(personnage['nom'])})"]
         if personnage.get("couleur"):
             arguments.append(f"color={_chaine(personnage['couleur'])}")
         lignes.append(f"define {pid} = Character({', '.join(arguments)})")
@@ -753,32 +825,72 @@ def _rpy_bible(projet: Projet) -> str:
     return "\n".join(lignes)
 
 
-def _rpy_chapitre(projet: Projet, chapitre: str, sids: list) -> str:
+@dataclass
+class Replique:
+    """Réplique du script, repérée pour la traduction."""
+    rid: str    # identifiant (clause « id » de la réplique dans le .rpy)
+    sid: str    # scène
+    qui: str    # id du personnage, vide pour la narration
+    texte: str  # texte dans la langue des fiches
+
+
+class _Script:
+    """Script d'une scène en cours d'écriture. Chaque réplique reçoit un identifiant stable,
+    label + empreinte du personnage et du texte (ch01_sc02_1a2b3c4d), qui la relie à ses
+    traductions ; il n'est écrit dans le .rpy que si la bible déclare des traductions."""
+
+    def __init__(self, projet: Projet, sid: str, avec_ids: bool):
+        self.projet = projet
+        self.sid = sid
+        self.avec_ids = avec_ids
+        self.repliques: list = []
+
+    def replique(self, qui: str, texte, marge: str) -> str:
+        texte = str(texte)
+        base = f"{self.sid.lower()}_{hashlib.md5(f'{qui}|{texte}'.encode('utf-8')).hexdigest()[:8]}"
+        pris = {replique.rid for replique in self.repliques}
+        rid, rang = base, 0
+        while rid in pris:  # même réplique répétée dans la scène : suffixe, comme Ren'Py
+            rang += 1
+            rid = f"{base}_{rang}"
+        self.repliques.append(Replique(rid, self.sid, qui, texte))
+        ligne = f"{marge}{qui + ' ' if qui else ''}{_chaine(texte)}"
+        return f"{ligne} id {rid}" if self.avec_ids else ligne
+
+
+def _rpy_chapitre(projet: Projet, chapitre: str, sids: list, avec_ids: bool) -> str:
     lignes = [f"# {MARQUEUR}", f"# Chapitre {chapitre} : {', '.join(sids)}."]
     for sid in sids:
-        fiche = projet.scenes[sid]
-        entete = f"    # {sid} — {fiche.get('titre', '')}"
-        details = [str(valeur) for valeur in (fiche.get("lieu"), fiche.get("moment")) if valeur]
-        if details:
-            entete += f" ({', '.join(details)})"
-        lignes += ["", "", f"label {sid.lower()}:", entete]
-        lignes += [f"    # objectif : {objectif}" for objectif in _liste(fiche.get("objectif_narratif"))]
-        lignes += _rpy_elements(projet, fiche.get("contenu"), 1)
-        lignes += _rpy_fin(projet, fiche)
+        lignes += _rpy_scene(_Script(projet, sid, avec_ids))
     lignes.append("")
     return "\n".join(lignes)
 
 
-def _rpy_elements(projet: Projet, elements, niveau: int) -> list:
+def _rpy_scene(script: _Script) -> list:
+    sid = script.sid
+    fiche = script.projet.scenes[sid]
+    entete = f"    # {sid} — {fiche.get('titre', '')}"
+    details = [str(valeur) for valeur in (fiche.get("lieu"), fiche.get("moment")) if valeur]
+    if details:
+        entete += f" ({', '.join(details)})"
+    lignes = ["", "", f"label {sid.lower()}:", entete]
+    lignes += [f"    # objectif : {objectif}" for objectif in _liste(fiche.get("objectif_narratif"))]
+    lignes += _rpy_elements(script, fiche.get("contenu"), 1)
+    lignes += _rpy_fin(script, fiche)
+    return lignes
+
+
+def _rpy_elements(script: _Script, elements, niveau: int) -> list:
+    projet = script.projet
     marge = "    " * niveau
     lignes = []
     for element in _liste(elements):
         cle = cle_element(element, projet)
         valeur = element[cle]
         if cle == "narration":
-            lignes.append(f"{marge}{_chaine(str(valeur))}")
+            lignes.append(script.replique("", valeur, marge))
         elif cle in projet.personnages:
-            lignes.append(f"{marge}{cle} {_chaine(str(valeur))}")
+            lignes.append(script.replique(cle, valeur, marge))
         elif cle == "decor":
             lignes.append(f"{marge}scene{' ' + valeur if valeur else ''}{_avec(element)}")
         elif cle == "montrer":
@@ -797,20 +909,20 @@ def _rpy_elements(projet: Projet, elements, niveau: int) -> list:
             lignes += _rpy_effets(projet, valeur, marge)
         elif cle == "si":
             lignes.append(f"{marge}if {_expr_texte(valeur)}:")
-            lignes += _rpy_bloc(projet, element.get("alors"), niveau + 1)
+            lignes += _rpy_bloc(script, element.get("alors"), niveau + 1)
             for branche in _liste(element.get("sinon_si")):
                 lignes.append(f"{marge}elif {_expr_texte(branche['si'])}:")
-                lignes += _rpy_bloc(projet, branche.get("alors"), niveau + 1)
+                lignes += _rpy_bloc(script, branche.get("alors"), niveau + 1)
             if element.get("sinon") is not None:
                 lignes.append(f"{marge}else:")
-                lignes += _rpy_bloc(projet, element.get("sinon"), niveau + 1)
+                lignes += _rpy_bloc(script, element.get("sinon"), niveau + 1)
         elif cle == "appel":
             lignes.append(f"{marge}call {valeur.lower()}")
     return lignes
 
 
-def _rpy_bloc(projet: Projet, elements, niveau: int) -> list:
-    return _rpy_elements(projet, elements, niveau) or ["    " * niveau + "pass"]
+def _rpy_bloc(script: _Script, elements, niveau: int) -> list:
+    return _rpy_elements(script, elements, niveau) or ["    " * niveau + "pass"]
 
 
 def _rpy_effets(projet: Projet, effets: dict, marge: str) -> list:
@@ -823,17 +935,18 @@ def _rpy_effets(projet: Projet, effets: dict, marge: str) -> list:
     return lignes
 
 
-def _rpy_fin(projet: Projet, fiche: dict) -> list:
+def _rpy_fin(script: _Script, fiche: dict) -> list:
+    projet = script.projet
     if fiche.get("choix") is not None:
         question, options = options_de(fiche)
         lignes = ["    menu:"]
         if question is not None:
-            lignes += _rpy_elements(projet, [question], 2)
+            lignes += _rpy_elements(script, [question], 2)
         for option in options:
             condition = f" if {_expr_texte(option['si'])}" if "si" in option else ""
             lignes += ["", f"        {_chaine(str(option['libelle']))}{condition}:"]
             lignes += _rpy_effets(projet, _dict(option.get("effets")), "            ")
-            lignes += _rpy_elements(projet, option.get("contenu"), 3)
+            lignes += _rpy_elements(script, option.get("contenu"), 3)
             lignes.append(f"            jump {option['destination'].lower()}")
         return lignes
     if fiche.get("suite"):
@@ -845,6 +958,10 @@ def _avec(element) -> str:
     return f" with {element['transition']}" if element.get("transition") else ""
 
 
+def _titre_galerie(sid: str, fiche: dict) -> str:
+    return str(_dict(fiche.get("galerie")).get("titre", fiche.get("titre", sid)))
+
+
 def _galerie_json(projet: Projet) -> str:
     entrees = []
     for sid in projet.ordre():
@@ -853,7 +970,7 @@ def _galerie_json(projet: Projet) -> str:
         if not galerie:
             continue
         images = list(galerie.get("images") or [])
-        entree = {"titre": galerie.get("titre", fiche.get("titre", sid)), "label": sid.lower(),
+        entree = {"titre": _titre_galerie(sid, fiche), "label": sid.lower(),
                   "vignette": galerie.get("vignette", images[0] if images else "")}
         if galerie.get("video"):
             entree["video"] = galerie["video"]
@@ -863,40 +980,63 @@ def _galerie_json(projet: Projet) -> str:
     return json.dumps({"_genere_par": MARQUEUR, "entrees": entrees}, ensure_ascii=False, indent=2) + "\n"
 
 
-def _routes_json(routes: list) -> str:
+def _routes_json(projet: Projet, routes: list) -> str:
     """Routes attendues, rejouées par tests/run_tests.gd : l'état final calculé par
-    l'explorateur Python doit être celui de l'interpréteur Godot."""
-    donnees = {"_genere_par": MARQUEUR, "routes": [
-        {"nom": f"route_{numero:02d}", "choix": [libelle for _, _, libelle in route["choix"]],
-         "fin": route["fin"].lower(), "etat_final": route["etat"]}
-        for numero, route in enumerate(routes, 1)]}
+    l'explorateur Python doit être celui de l'interpréteur Godot, dans chaque langue
+    (« choix_traduits » : les mêmes choix, tels qu'affichés dans la traduction)."""
+    traduits = {code: traductions_de(projet, code)[1] for code in projet.langues_cibles}
+    donnees = {"_genere_par": MARQUEUR, "routes": []}
+    for numero, route in enumerate(routes, 1):
+        choix = [libelle for _, _, libelle in route["choix"]]
+        entree = {"nom": f"route_{numero:02d}", "choix": choix, "fin": route["fin"].lower(), "etat_final": route["etat"]}
+        if traduits:
+            entree["choix_traduits"] = {code: [textes.get(libelle, libelle) for libelle in choix]
+                                        for code, textes in traduits.items()}
+        donnees["routes"].append(entree)
     return json.dumps(donnees, ensure_ascii=False, indent=2) + "\n"
 
 
 def _tests_renpy(projet: Projet, routes: list) -> str:
-    """Testcases Ren'Py : chaque route rejoue ses choix et doit atteindre sa fin ;
+    """Testcases Ren'Py : chaque route rejoue ses choix et doit atteindre sa fin, dans la
+    langue des fiches puis dans chaque traduction (choix cliqués par leur texte traduit) ;
     « galerie » débloque toutes les entrées puis ouvre l'écran de galerie."""
     lignes = [f"# {MARQUEUR}", "# Tests de parcours Ren'Py : renpy.sh <projet> test"]
+    langues = [(projet.langue_source, {})] + [(code, traductions_de(projet, code)[1]) for code in projet.langues_cibles]
+    plusieurs = len(langues) > 1
     for numero, route in enumerate(routes, 1):
         fin = _chaine(route["fin"].lower())
-        # La condition « label » des tests perd les labels traversés pendant un clic :
-        # on oublie la fin attendue (clé en clair ou hachée, selon config.hash_seen),
-        # on joue jusqu'au menu principal, puis renpy.seen_label doit la retrouver.
-        lignes += ["", "", f"testcase route_{numero:02d}:", "    $ _test.timeout = 30.0",
-                   "    $ _test.transition_timeout = 0.05",
-                   f"    $ renpy.game.persistent._seen_ever.pop({fin}, None)",
-                   f"    $ renpy.game.persistent._seen_ever.pop(renpy.astsupport.hash64({fin}), None)",
-                   '    click "Start"']
-        for _, _, libelle in route["choix"]:
-            lignes += ['    advance until screen "choice"', f"    click {_chaine(libelle)}"]
-        lignes += ['    advance until screen "main_menu"',
-                   f"    $ assert renpy.seen_label({fin}), {_chaine('fin attendue non atteinte : ' + route['fin'].lower())}"]
+        for code, textes in langues:
+            suffixe = f"_{code}" if code != projet.langue_source else ""
+            # La condition « label » des tests perd les labels traversés pendant un clic :
+            # on oublie la fin attendue (clé en clair ou hachée, selon config.hash_seen),
+            # on joue jusqu'au menu principal, puis renpy.seen_label doit la retrouver.
+            lignes += ["", "", f"testcase route_{numero:02d}{suffixe}:", "    $ _test.timeout = 30.0",
+                       "    $ _test.transition_timeout = 0.05",
+                       f"    $ renpy.game.persistent._seen_ever.pop({fin}, None)",
+                       f"    $ renpy.game.persistent._seen_ever.pop(renpy.astsupport.hash64({fin}), None)",
+                       '    pause until screen "main_menu"']
+            if plusieurs:
+                # Un changement de langue reconstruit les styles : on le laisse finir avant Start(),
+                # sinon Ren'Py peut rejouer l'action une fois la partie commencée.
+                lignes += [f"    run Language({_chaine(_nom_renpy(code))})", "    pause 0.5"]
+            lignes.append("    run Start()")
+            for rang, (_, _, libelle) in enumerate(route["choix"]):
+                # Pause : un clic pendant la transition d'apparition du menu serait perdu.
+                lignes += ['    advance until screen "choice"', "    pause 0.5"]
+                if suffixe and numero == 1 and rang == 0:
+                    lignes.append(f'    screenshot "renpy_{code}.png"')
+                lignes.append(f"    click {_chaine(textes.get(libelle, libelle))}")
+            lignes += ['    advance until screen "main_menu"',
+                       f"    $ assert renpy.seen_label({fin}), {_chaine('fin attendue non atteinte : ' + route['fin'].lower())}"]
     labels = [sid.lower() for sid in projet.ordre() if projet.scenes[sid].get("galerie")]
     if labels:
-        lignes += ["", "", "testcase galerie:", "    $ _test.timeout = 30.0", '    click "Start"', "    pause 0.5"]
+        lignes += ["", "", "testcase galerie:", "    $ _test.timeout = 30.0", '    pause until screen "main_menu"']
+        if plusieurs:
+            lignes += [f"    run Language({_chaine(_nom_renpy(projet.langue_source))})", "    pause 0.5"]
+        lignes += ["    run Start()", "    pause 0.5"]
         for label in labels:
             lignes += [f'    run Jump("{label}")', "    pause 0.5"]
-        lignes += ["    run MainMenu(confirm=False)", "    pause 1.0", '    click "Galerie"', "    pause 1.0",
+        lignes += ["    run MainMenu(confirm=False)", "    pause 1.0", '    run ShowMenu("galerie")', "    pause 1.0",
                    '    screenshot "renpy_galerie.png"',
                    f"    $ assert len(galerie_entrees) == {len(labels)}, galerie_entrees",
                    '    $ assert all(renpy.seen_label(e["label"]) for e in galerie_entrees), galerie_entrees']
@@ -917,6 +1057,416 @@ def controle_godot(racine: Path) -> bool:
     for ligne in lignes:
         print(f"  {ligne}")
     return resultat.returncode == 0
+
+
+# --- Traductions ------------------------------------------------------------------------------
+#
+# Les fiches sont écrites dans la langue source. Chaque traduction a son fichier
+# contenu/traductions/<code>.yaml : les répliques y sont repérées par leur identifiant
+# (clause « id » du script), les noms, choix et titres de galerie par leur texte, comme
+# dans Ren'Py. generer en tire game/tl/<langue>/story/*.rpy, lu par Ren'Py et par Godot.
+
+def _nom_renpy(code: str) -> str:
+    return LANGUES.get(code, (code, code))[0]
+
+
+def _langues_json(projet: Projet) -> str:
+    """Langues du jeu, lues par game/langues.rpy (Ren'Py) et par le lecteur Godot."""
+    def decrire(code):
+        nom_renpy, nom = LANGUES.get(code, (code, code))
+        return {"code": code, "renpy": nom_renpy, "nom": nom}
+
+    donnees = {"_genere_par": MARQUEUR, "source": decrire(projet.langue_source),
+               "traductions": [decrire(code) for code in projet.langues_cibles]}
+    return json.dumps(donnees, ensure_ascii=False, indent=2) + "\n"
+
+
+def repliques(projet: Projet) -> list:
+    """Toutes les répliques du script (narration, personnages, questions des menus), dans
+    l'ordre, avec l'identifiant qui les relie à leurs traductions."""
+    resultat = []
+    for sid in projet.ordre():
+        script = _Script(projet, sid, avec_ids=True)
+        _rpy_scene(script)
+        resultat += script.repliques
+    return resultat
+
+
+def textes_a_traduire(projet: Projet) -> dict:
+    """Textes traduits comme des chaînes Ren'Py (« translate strings ») : noms des
+    personnages, choix des menus et titres de la galerie. {texte : groupe}, dans l'ordre."""
+    resultat: dict = {}
+    for personnage in projet.personnages.values():
+        resultat.setdefault(str(personnage["nom"]), "Noms des personnages")
+    for sid in projet.ordre():
+        fiche = projet.scenes[sid]
+        groupe = f"{sid} — {fiche.get('titre', '')}"
+        for option in options_de(fiche)[1]:
+            resultat.setdefault(str(option["libelle"]), f"{groupe} : choix")
+        if fiche.get("galerie"):
+            resultat.setdefault(_titre_galerie(sid, fiche), f"{groupe} : galerie")
+    return resultat
+
+
+def traductions_de(projet: Projet, code: str) -> tuple[dict, dict]:
+    """Traductions faites d'une langue : ({id de réplique : texte}, {texte source : texte})."""
+    donnees = _dict(projet.traductions.get(code))
+    lignes = {str(rid): str(entree["texte"]) for rid, entree in _dict(donnees.get("repliques")).items()
+              if isinstance(entree, dict) and _rempli(entree.get("texte"))}
+    textes = {str(entree["source"]): str(entree["texte"]) for entree in _liste(donnees.get("textes"))
+              if isinstance(entree, dict) and "source" in entree and _rempli(entree.get("texte"))}
+    return lignes, textes
+
+
+def _rempli(valeur) -> bool:
+    return isinstance(valeur, (str, int, float)) and not isinstance(valeur, bool) and bool(str(valeur).strip())
+
+
+def _label_de(rid: str) -> str:
+    return re.sub(r"_[0-9a-f]{8}(?:_\d+)?$", "", rid)
+
+
+def _verifier_traductions(projet: Projet, rapport: Rapport):
+    """Fichiers de traduction : structure, textes à traduire ou à revoir, variables et
+    balises conservées, choix d'un même menu toujours distincts une fois traduits."""
+    if not projet.langues_cibles:
+        return
+    actuelles = repliques(projet)
+    ids = {replique.rid for replique in actuelles}
+    sources = textes_a_traduire(projet)
+    for code in projet.langues_cibles:
+        ou = f"{DOSSIER_TRADUCTIONS}/{code}.yaml"
+        donnees = projet.traductions.get(code)
+        if donnees is None:
+            rapport.avertir(ou, f"absent ou vide : lancez tools/fiches.py traduire {code}")
+            continue
+        if not isinstance(donnees, dict):
+            rapport.erreur(ou, "« repliques » et « textes » attendus")
+            continue
+        for cle in sorted(set(map(str, donnees)) - CHAMPS_TRADUCTION):
+            rapport.erreur(ou, f"champ inconnu « {cle} » (champs possibles : {', '.join(sorted(CHAMPS_TRADUCTION))})")
+        entrees = donnees.get("repliques") or {}
+        if not isinstance(entrees, dict):
+            rapport.erreur(ou, "« repliques » : identifiant → {qui, source, texte} attendu")
+            entrees = {}
+        a_traduire = a_revoir = 0
+        for replique in actuelles:
+            entree = entrees.get(replique.rid)
+            ici = f"{ou}, {replique.rid}"
+            if entree is not None and (not isinstance(entree, dict) or set(entree) - {"qui", "source", "texte", "a_revoir"}):
+                rapport.erreur(ici, "attendu : qui, source, texte (et a_revoir)")
+                continue
+            if entree is None or not _rempli(entree.get("texte")):
+                a_traduire += 1
+                continue
+            if entree.get("a_revoir") or entree.get("source", replique.texte) != replique.texte:
+                a_revoir += 1
+            _verifier_texte_traduit(projet, rapport, ici, replique.texte, entree["texte"])
+        obsoletes = len(set(map(str, entrees)) - ids)
+        if donnees.get("textes") is not None and not isinstance(donnees["textes"], list):
+            rapport.erreur(ou, "« textes » : liste de - source: … / texte: … attendue")
+        vus, traduits = set(), {}
+        for rang, entree in enumerate(_liste(donnees.get("textes")), 1):
+            ici = f"{ou}, textes[{rang}]"
+            if not isinstance(entree, dict) or "source" not in entree or set(entree) - {"source", "texte", "a_revoir"}:
+                rapport.erreur(ici, "attendu : - source: … / texte: … (et a_revoir)")
+                continue
+            source = str(entree["source"])
+            if source in vus:
+                rapport.erreur(ici, f"« {source} » est traduit deux fois")
+                continue
+            vus.add(source)
+            if _rempli(entree.get("texte")):
+                traduits[source] = entree
+        for source in sources:
+            entree = traduits.get(source)
+            if entree is None:
+                a_traduire += 1
+                continue
+            if entree.get("a_revoir"):
+                a_revoir += 1
+            _verifier_texte_traduit(projet, rapport, f"{ou}, texte « {source} »", source, entree["texte"])
+        obsoletes += len(vus - set(sources))
+        for sid in projet.ordre():
+            libelles = [str(option["libelle"]) for option in options_de(projet.scenes[sid])[1]]
+            affiches = [str(traduits[libelle]["texte"]) if libelle in traduits else libelle for libelle in libelles]
+            for double in sorted({libelle for libelle in affiches if affiches.count(libelle) > 1}):
+                rapport.erreur(ou, f"{sid} : deux choix du même menu s'affichent « {double} »")
+            for court in affiches:
+                for long in affiches:
+                    if court != long and court in long:
+                        rapport.avertir(ou, f"{sid} : « {court} » est contenu dans « {long} » : "
+                                            "les tests Ren'Py risquent de cliquer le mauvais choix")
+        if a_traduire:
+            rapport.avertir(ou, f"{a_traduire} réplique(s) ou texte(s) à traduire (le jeu affiche alors le texte "
+                                f"d'origine) : lancez tools/fiches.py traduire {code}, puis complétez « texte »")
+        if a_revoir:
+            rapport.avertir(ou, f"{a_revoir} traduction(s) à revoir : le texte d'origine a changé (« a_revoir »)")
+        if obsoletes:
+            rapport.avertir(ou, f"{obsoletes} entrée(s) ne correspondent plus au script : "
+                                f"lancez tools/fiches.py traduire {code}")
+
+
+def _verifier_texte_traduit(projet: Projet, rapport: Rapport, ici: str, source: str, traduction):
+    traduction, source = str(traduction), str(source)
+    noms = INTERPOLATION.findall(traduction.replace("[[", ""))
+    for nom in noms:
+        if nom not in projet.variables:
+            rapport.erreur(ici, f"[{nom}] : variable inconnue dans la traduction")
+    if set(noms) != set(INTERPOLATION.findall(source.replace("[[", ""))):
+        rapport.avertir(ici, "les [variables] de la traduction diffèrent de celles du texte d'origine")
+    if sorted(BALISE.findall(traduction.replace("{{", ""))) != sorted(BALISE.findall(source.replace("{{", ""))):
+        rapport.avertir(ici, "les balises {…} de la traduction diffèrent de celles du texte d'origine")
+
+
+def _rpy_traduction(projet: Projet, code: str) -> dict:
+    """Traductions Ren'Py d'une langue : un bloc « translate » par réplique traduite, dans
+    game/tl/<langue>/story/chapitre_XX.rpy, et les textes dans textes.rpy."""
+    nom_renpy, nom = LANGUES[code]
+    lignes_traduites, textes_traduits = traductions_de(projet, code)
+    source = f"{DOSSIER_TRADUCTIONS}/{code}.yaml"
+    fichiers = {}
+    par_chapitre: dict = {}
+    for replique in repliques(projet):
+        if replique.rid in lignes_traduites:
+            par_chapitre.setdefault(_chapitre(replique.sid, projet.scenes[replique.sid]), []).append(replique)
+    for chapitre, liste in sorted(par_chapitre.items()):
+        lignes = [f"# {MARQUEUR}", f"# Traduction {code} ({nom}) du chapitre {chapitre} : {source}."]
+        scene = None
+        for replique in liste:
+            if replique.sid != scene:
+                scene = replique.sid
+                lignes += ["", f"# {scene} — {projet.scenes[scene].get('titre', '')}"]
+            qui = f"{replique.qui} " if replique.qui else ""
+            lignes += ["", f"translate {nom_renpy} {replique.rid}:", "",
+                       f"    # {qui}{_chaine(replique.texte)}", f"    {qui}{_chaine(lignes_traduites[replique.rid])}"]
+        fichiers[f"game/tl/{nom_renpy}/story/chapitre_{chapitre}.rpy"] = "\n".join(lignes) + "\n"
+    paires = [(texte, textes_traduits[texte]) for texte in textes_a_traduire(projet) if texte in textes_traduits]
+    if paires:
+        lignes = [f"# {MARQUEUR}", f"# Traduction {code} ({nom}) des noms, des choix et des titres de la galerie : {source}.",
+                  "", f"translate {nom_renpy} strings:"]
+        for original, traduction in paires:
+            lignes += ["", f"    old {_chaine(original)}", f"    new {_chaine(traduction)}"]
+        fichiers[f"game/tl/{nom_renpy}/story/textes.rpy"] = "\n".join(lignes) + "\n"
+    return fichiers
+
+
+def traduire(projet: Projet, code: str) -> tuple[str, dict]:
+    """Contenu à jour de contenu/traductions/<code>.yaml, et son bilan. Ajoute les nouvelles
+    répliques et les nouveaux textes, garde les traductions faites. Quand un texte d'origine
+    change, sa traduction est reprise et marquée « a_revoir » (avec l'ancien texte) ; les
+    traductions qui ne servent plus passent dans « obsoletes »."""
+    donnees = _dict(projet.traductions.get(code))
+    anciennes = {str(rid): entree for rid, entree in _dict(donnees.get("repliques")).items() if isinstance(entree, dict)}
+    anciens_textes = {str(entree["source"]): entree for entree in _liste(donnees.get("textes"))
+                      if isinstance(entree, dict) and "source" in entree}
+    anciennes_obsoletes = [entree for entree in _liste(donnees.get("obsoletes"))
+                           if isinstance(entree, dict) and _rempli(entree.get("texte"))]
+    bilan = {"nouveaux": 0, "repris": 0}
+
+    actuelles = repliques(projet)
+    ids = {replique.rid for replique in actuelles}
+    reserve = [{"id": rid, "source": str(entree.get("source", "")), "texte": entree["texte"]}
+               for rid, entree in anciennes.items() if rid not in ids and _rempli(entree.get("texte"))]
+    reserve += [entree for entree in anciennes_obsoletes if "id" in entree]
+    lignes_repliques = []
+    for replique in actuelles:
+        entree = anciennes.get(replique.rid)
+        texte, a_revoir = "", None
+        if entree is not None and _rempli(entree.get("texte")):
+            texte = entree["texte"]
+            ancienne_source = entree.get("source", replique.texte)
+            a_revoir = entree.get("a_revoir") or (ancienne_source if ancienne_source != replique.texte else None)
+        else:
+            reprise = _reprendre(reserve, replique.texte, _label_de(replique.rid))
+            if reprise is not None:
+                texte = reprise["texte"]
+                a_revoir = reprise["source"] if reprise["source"] != replique.texte else None
+                bilan["repris"] += 1
+            elif entree is None:
+                bilan["nouveaux"] += 1
+        lignes_repliques.append((replique, texte, a_revoir))
+
+    actuels = textes_a_traduire(projet)
+    reserve_textes = [{"source": source, "texte": entree["texte"]} for source, entree in anciens_textes.items()
+                      if source not in actuels and _rempli(entree.get("texte"))]
+    reserve_textes += [entree for entree in anciennes_obsoletes if "id" not in entree]
+    entrees_textes = []
+    for source, groupe in actuels.items():
+        entree = anciens_textes.get(source)
+        texte, a_revoir = "", None
+        if entree is not None and _rempli(entree.get("texte")):
+            texte, a_revoir = entree["texte"], entree.get("a_revoir")
+        else:
+            reprise = _reprendre(reserve_textes, source)
+            if reprise is not None:
+                texte = reprise["texte"]
+                a_revoir = reprise["source"] if reprise["source"] != source else None
+                bilan["repris"] += 1
+            elif entree is None:
+                bilan["nouveaux"] += 1
+        entrees_textes.append((source, groupe, texte, a_revoir))
+
+    obsoletes = reserve + reserve_textes
+    tous = [(texte, a_revoir) for _, texte, a_revoir in lignes_repliques]
+    tous += [(texte, a_revoir) for _, _, texte, a_revoir in entrees_textes]
+    bilan.update({"repliques": len(lignes_repliques), "textes": len(entrees_textes),
+                  "a_traduire": sum(1 for texte, _ in tous if not _rempli(texte)),
+                  "a_revoir": sum(1 for texte, a_revoir in tous if _rempli(texte) and a_revoir),
+                  "obsoletes": len(obsoletes)})
+    return _fichier_traduction(projet, code, lignes_repliques, entrees_textes, obsoletes), bilan
+
+
+def _reprendre(reserve: list, texte: str, label: str | None = None):
+    """Retire de la réserve et renvoie la traduction dont le texte d'origine ressemble le
+    plus à texte (identique d'abord, puis même scène, puis la plus proche), ou None."""
+    candidates = []
+    for candidate in reserve:
+        ratio = difflib.SequenceMatcher(None, str(candidate.get("source", "")), texte).ratio()
+        if ratio >= SEUIL_REPRISE:
+            meme_scene = label is not None and _label_de(str(candidate.get("id", ""))) == label
+            candidates.append(((ratio == 1.0, meme_scene, ratio), candidate))
+    if not candidates:
+        return None
+    choisie = max(candidates, key=lambda paire: paire[0])[1]
+    reserve.remove(choisie)
+    return choisie
+
+
+def _fichier_traduction(projet: Projet, code: str, lignes_repliques: list, entrees_textes: list, obsoletes: list) -> str:
+    nom = LANGUES[code][1]
+    titre = projet.bible.get("titre")
+    lignes = [f"# Traduction « {code} » ({nom}){f' de « {titre} »' if titre else ''}. "
+              f"Langue des fiches : {projet.langue_source}.",
+              "#",
+              "# Complétez « texte ». Un texte vide n'est pas encore traduit : le jeu affiche l'original.",
+              "# « source » rappelle le texte d'origine : ne le modifiez pas.",
+              "# « a_revoir » : le texte d'origine a changé (ancienne version indiquée). Vérifiez la",
+              "# traduction, puis supprimez la ligne « a_revoir ».",
+              "# Gardez tels quels les [variables] et les balises {i}…{/i}.",
+              f"# Après une modification des fiches : .venv/bin/python tools/fiches.py traduire {code}",
+              "", "repliques:" if lignes_repliques else "repliques: {}"]
+    scene = None
+    for replique, texte, a_revoir in lignes_repliques:
+        if replique.sid != scene:
+            scene = replique.sid
+            lignes += ["", f"  # {scene} — {projet.scenes[scene].get('titre', '')}"]
+        lignes += [f"  {replique.rid}:", f"    qui: {replique.qui or 'narration'}", f"    source: {_chaine(replique.texte)}"]
+        if a_revoir:
+            lignes.append(f"    a_revoir: {_valeur_yaml(a_revoir)}")
+        lignes.append(f"    texte: {_valeur_yaml(texte)}")
+    lignes += ["", "textes:" if entrees_textes else "textes: []"]
+    groupe_courant = None
+    for source, groupe, texte, a_revoir in entrees_textes:
+        if groupe != groupe_courant:
+            groupe_courant = groupe
+            lignes += ["", f"  # {groupe}"]
+        lignes.append(f"  - source: {_chaine(source)}")
+        if a_revoir:
+            lignes.append(f"    a_revoir: {_valeur_yaml(a_revoir)}")
+        lignes.append(f"    texte: {_valeur_yaml(texte)}")
+    if obsoletes:
+        lignes += ["", "# Traductions qui ne servent plus (texte d'origine supprimé ou trop changé) :",
+                   "# réutilisez-les ou supprimez-les.", "obsoletes:"]
+        for entree in obsoletes:
+            cles = [cle for cle in ("id", "source", "texte") if cle in entree]
+            for rang, cle in enumerate(cles):
+                lignes.append(f"  {'- ' if rang == 0 else '  '}{cle}: {_valeur_yaml(entree[cle])}")
+    return "\n".join(lignes) + "\n"
+
+
+def _valeur_yaml(valeur) -> str:
+    if isinstance(valeur, bool):
+        return "true" if valeur else "false"
+    return _chaine("" if valeur is None else str(valeur))
+
+
+def importer_traductions(projet: Projet, code: str, texte: str) -> int:
+    """Reprend les traductions d'un YAML au format du fichier de traduction (réponse d'un
+    traducteur ou d'une IA au paquet de traduction). Seuls les « texte » non vides des
+    répliques et des textes du jeu sont repris ; renvoie leur nombre."""
+    reponse = yaml.safe_load(re.sub(r"^\s*```\w*\s*$", "", texte, flags=re.M))
+    if not isinstance(reponse, dict):
+        raise ValueError("YAML attendu, avec « repliques » et/ou « textes »")
+    donnees = dict(_dict(projet.traductions.get(code)))
+    actuelles = {replique.rid: replique for replique in repliques(projet)}
+    entrees = {str(rid): dict(entree) for rid, entree in _dict(donnees.get("repliques")).items() if isinstance(entree, dict)}
+    repris = 0
+    for rid, entree in _dict(reponse.get("repliques")).items():
+        replique = actuelles.get(str(rid))
+        if replique is None or not isinstance(entree, dict) or not _rempli(entree.get("texte")):
+            continue
+        entrees[replique.rid] = {"qui": replique.qui or "narration", "source": replique.texte, "texte": str(entree["texte"])}
+        repris += 1
+    sources = textes_a_traduire(projet)
+    textes = [dict(entree) for entree in _liste(donnees.get("textes")) if isinstance(entree, dict)]
+    index = {str(entree.get("source")): entree for entree in textes}
+    for entree in _liste(reponse.get("textes")):
+        if not isinstance(entree, dict) or str(entree.get("source")) not in sources or not _rempli(entree.get("texte")):
+            continue
+        cible = index.setdefault(str(entree["source"]), {"source": str(entree["source"])})
+        if cible not in textes:
+            textes.append(cible)
+        cible["texte"] = str(entree["texte"])
+        cible.pop("a_revoir", None)
+        repris += 1
+    donnees["repliques"], donnees["textes"] = entrees, textes
+    projet.traductions[code] = donnees
+    return repris
+
+
+def paquet_traduction(projet: Projet, code: str, donnees: dict) -> str:
+    """Paquet pour un traducteur ou une IA : consignes, contexte du jeu, glossaire et
+    entrées à traduire (vides ou à revoir), au format du fichier de traduction."""
+    nom = LANGUES[code][1]
+    nom_source = LANGUES.get(projet.langue_source, (None, projet.langue_source))[1]
+    a_faire = {rid: entree for rid, entree in _dict(donnees.get("repliques")).items()
+               if isinstance(entree, dict) and (not _rempli(entree.get("texte")) or entree.get("a_revoir"))}
+    textes = [entree for entree in _liste(donnees.get("textes")) if isinstance(entree, dict)]
+    textes_a_faire = [entree for entree in textes if not _rempli(entree.get("texte")) or entree.get("a_revoir")]
+    glossaire = [entree for entree in textes if entree not in textes_a_faire]
+    lignes = [f"# Paquet de traduction — {nom} ({code})", "",
+              "## Consigne", "",
+              f"Traduis les entrées de la section « À traduire ». Langue d'origine : {nom_source} "
+              f"({projet.langue_source}) ; langue cible : {nom} ({code}). C'est un jeu narratif : garde le ton, "
+              "le rythme et la voix de chaque personnage.",
+              "",
+              "- Remplis seulement « texte » : ne change ni les identifiants, ni « source », ni « qui ».",
+              "- Garde tels quels les [variables] et les balises {i}…{/i}, {b}…{/b}.",
+              "- « a_revoir » donne l'ancien texte d'origine, « texte » sa traduction : adapte-la au nouveau texte "
+              "d'origine (« source »).",
+              "- Les choix des menus restent courts et tous différents dans un même menu.",
+              "- Réponds uniquement par le bloc YAML complété.",
+              "", f"Pour reprendre la réponse : enregistrez-la dans un fichier, puis "
+              f"`.venv/bin/python tools/fiches.py traduire {code} --importer reponse.yaml`.", ""]
+    if projet.bible.get("synopsis"):
+        lignes += ["## Synopsis", "", str(projet.bible["synopsis"]).strip(), ""]
+    lignes += ["## Personnages", ""]
+    for pid, personnage in projet.personnages.items():
+        details = [str(personnage.get(cle)) for cle in ("role", "personnalite") if personnage.get(cle)]
+        lignes.append(f"- `{pid}` : {personnage.get('nom')}" + (f" — {' ; '.join(details)}" if details else ""))
+    regles = _liste(projet.bible.get("regles_editoriales"))
+    if regles:
+        lignes += ["", "## Règles éditoriales", ""] + [f"- {regle}" for regle in regles]
+    if glossaire:
+        lignes += ["", "## Glossaire (déjà traduit)", ""]
+        lignes += [f"- {entree.get('source')} → {entree.get('texte')}" for entree in glossaire]
+    lignes += ["", "## À traduire", ""]
+    if not a_faire and not textes_a_faire:
+        return "\n".join(lignes + ["Tout est traduit.", ""])
+    bloc = ["repliques:" if a_faire else "repliques: {}"]
+    for rid, entree in a_faire.items():
+        bloc += [f"  {rid}:", f"    qui: {entree.get('qui', 'narration')}", f"    source: {_valeur_yaml(entree.get('source'))}"]
+        if entree.get("a_revoir"):
+            bloc.append(f"    a_revoir: {_valeur_yaml(entree['a_revoir'])}")
+        bloc.append(f"    texte: {_valeur_yaml(entree.get('texte'))}")
+    bloc.append("textes:" if textes_a_faire else "textes: []")
+    for entree in textes_a_faire:
+        bloc.append(f"  - source: {_valeur_yaml(entree.get('source'))}")
+        if entree.get("a_revoir"):
+            bloc.append(f"    a_revoir: {_valeur_yaml(entree['a_revoir'])}")
+        bloc.append(f"    texte: {_valeur_yaml(entree.get('texte'))}")
+    return "\n".join(lignes + ["```yaml"] + bloc + ["```", ""])
 
 
 # --- Médias : inventaire, production, provisoires -------------------------------------------
@@ -1380,6 +1930,10 @@ def main(argv=None) -> int:
     commande_contexte = commandes.add_parser("contexte", help="contexte pour écrire ou réviser une scène")
     commande_contexte.add_argument("scene", help="identifiant de la scène, par exemple CH01_SC02")
     commande_contexte.add_argument("-o", "--sortie", help="fichier de sortie (sinon : affichage)")
+    commande_traduire = commandes.add_parser("traduire", help="met à jour contenu/traductions/<langue>.yaml")
+    commande_traduire.add_argument("langues", nargs="*", help="codes de langue (par défaut : toutes les traductions de la bible)")
+    commande_traduire.add_argument("--paquet", help="écrit aussi le paquet à donner à un traducteur ou à une IA")
+    commande_traduire.add_argument("--importer", help="reprend les traductions d'un fichier YAML (réponse au paquet)")
     args = parser.parse_args(argv)
 
     rapport = Rapport()
@@ -1435,6 +1989,45 @@ def main(argv=None) -> int:
         else:
             print(texte)
         return 0
+    if args.commande == "traduire":
+        return _commande_traduire(projet, args)
+    return 0
+
+
+def _commande_traduire(projet: Projet, args) -> int:
+    codes = args.langues or projet.langues_cibles
+    if not codes:
+        print("Aucune traduction déclarée : ajoutez à la bible « langues: {source: fr, traductions: [en]} ».")
+        return 1
+    inconnues = [code for code in codes if code not in projet.langues_cibles]
+    if inconnues:
+        print(f"Langue(s) absente(s) de « langues.traductions » dans la bible : {', '.join(inconnues)}.")
+        return 1
+    if (args.paquet or args.importer) and len(codes) != 1:
+        print("--paquet et --importer s'utilisent avec une seule langue.")
+        return 1
+    for code in codes:
+        if args.importer:
+            try:
+                repris = importer_traductions(projet, code, Path(args.importer).read_text(encoding="utf-8"))
+            except (OSError, ValueError, yaml.YAMLError) as exc:
+                print(f"{args.importer} : lecture impossible ({exc}).")
+                return 1
+            print(f"{args.importer} : {repris} traduction(s) reprise(s).")
+        texte, bilan = traduire(projet, code)
+        chemin = projet.racine / DOSSIER_TRADUCTIONS / f"{code}.yaml"
+        chemin.parent.mkdir(parents=True, exist_ok=True)
+        if not chemin.exists() or chemin.read_text(encoding="utf-8") != texte:
+            chemin.write_text(texte, encoding="utf-8")
+        print(f"{chemin.relative_to(projet.racine).as_posix()} : {bilan['repliques']} répliques, {bilan['textes']} textes ; "
+              f"{bilan['nouveaux']} nouveau(x), {bilan['repris']} repris, {bilan['a_traduire']} à traduire, "
+              f"{bilan['a_revoir']} à revoir, {bilan['obsoletes']} obsolète(s).")
+        if args.paquet:
+            Path(args.paquet).write_text(paquet_traduction(projet, code, yaml.safe_load(texte)), encoding="utf-8")
+            print(f"Paquet de traduction : {args.paquet}")
+        if bilan["a_traduire"] or bilan["a_revoir"]:
+            print(f"  Complétez ou revoyez « texte » dans {chemin.relative_to(projet.racine).as_posix()}.")
+    print("Ensuite : .venv/bin/python tools/fiches.py generer")
     return 0
 
 

@@ -21,17 +21,19 @@ Ce tutoriel part du jeu de démo et vous amène jusqu'à votre propre jeu, joué
    $RENPY_SDK/renpy.sh .          # $RENPY_SDK : dossier où vous avez décompressé le SDK
    ```
 
-Essayez les deux fins : faites confiance à Léna, ou repartez sous la pluie. Regardez la photo dans la boîte aux lettres pour débloquer un choix de plus. Ouvrez la galerie depuis le menu principal.
+Essayez les deux fins : faites confiance à Léna, ou repartez sous la pluie. Regardez la photo dans la boîte aux lettres pour débloquer un choix de plus. Ouvrez la galerie depuis le menu principal, et passez en anglais dans Préférences → Langue.
 
 ## 2. Comprendre le circuit
 
 ```
-contenu/bible.yaml            personnages, lieux, variables
+contenu/bible.yaml            personnages, lieux, variables, langues
 contenu/scenes/**/*.yaml      une fiche par scène
+contenu/traductions/en.yaml   traduction anglaise
         │  tools/fiches.py verifier   → contrôle toutes les routes
         │  tools/fiches.py generer    → écrit :
         ▼
 game/story/*.rpy              script commun, lu par Ren'Py ET par Godot
+game/tl/english/story/*.rpy   traduction anglaise, lue elle aussi par les deux moteurs
 game/galerie.json             galerie
 tests/routes_attendues.json   routes à rejouer par Godot
 game/tests_routes.rpy         routes à rejouer par Ren'Py
@@ -130,7 +132,32 @@ Dans les fiches, Sam parle avec `- sam: "…"`, et les effets modifient ses vari
 
 Donnez-le à votre scénariste ou à une IA : la réponse attendue est la fiche YAML complète. Collez-la, puis relancez `verifier`.
 
-## 8. Tests
+## 8. Traduire le jeu
+
+Les fiches sont écrites dans une langue, déclarée dans la bible, et chaque traduction a son fichier :
+
+```yaml
+langues:
+  source: fr            # langue des fiches
+  traductions: [en]     # traductions : en, es, de, it, pt…
+```
+
+1. `.venv/bin/python tools/fiches.py traduire en` crée ou met à jour `contenu/traductions/en.yaml`. On y trouve chaque réplique du script, chaque nom de personnage, choix et titre de galerie, avec son texte d'origine (`source`) et un `texte` vide à remplir.
+2. Remplissez `texte`, puis lancez `generer` : les traductions sont écrites dans `game/tl/english/story/`, où Ren'Py et Godot les lisent.
+3. En jeu, Préférences → Langue change de langue. Au premier lancement, le jeu prend la langue du système si elle est disponible.
+
+Après une modification des fiches, relancez `traduire en` :
+- les nouvelles répliques sont ajoutées ;
+- une traduction dont le texte d'origine a changé est gardée et marquée `a_revoir`, avec l'ancien texte ;
+- les traductions qui ne correspondent plus à rien passent dans `obsoletes`.
+
+`verifier` compte ce qui reste à traduire ou à revoir, et contrôle que chaque traduction garde les `[variables]` et les `{balises}` de l'original.
+
+Avec un traducteur ou une IA, `traduire en --paquet traduction.md` écrit un paquet : consignes, personnages, glossaire et entrées à traduire. Enregistrez la réponse dans un fichier, puis lancez `traduire en --importer reponse.yaml`.
+
+Chaque réplique est reliée à ses traductions par un identifiant écrit dans le script (`lena "…" id ch01_sc02_14e17bdd`). Il est calculé d'après la scène, le personnage et le texte : ajouter des répliques ailleurs ne le change pas.
+
+## 9. Tests
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -p "test_*.py"
@@ -139,9 +166,9 @@ $RENPY_SDK/renpy.sh . lint
 $RENPY_SDK/renpy.sh . test --overwrite-screenshots
 ```
 
-`generer` choisit quelques routes qui couvrent toutes les fins et tous les choix. Godot doit y retrouver exactement l'état final calculé en Python ; Ren'Py rejoue les mêmes routes en cliquant les choix. Les tests suivent donc votre histoire sans que vous ayez à les écrire.
+`generer` choisit quelques routes qui couvrent toutes les fins et tous les choix. Godot doit y retrouver exactement l'état final calculé en Python ; Ren'Py rejoue les mêmes routes en cliquant les choix. Les deux le font dans chaque langue, en cliquant les choix traduits. Les tests suivent donc votre histoire sans que vous ayez à les écrire.
 
-## 9. Partir de zéro pour votre jeu
+## 10. Partir de zéro pour votre jeu
 
 1. **Copier.** Copiez ce dépôt dans un nouveau dossier, qui sera votre projet.
 2. **Vider le contenu.** Supprimez les fiches de la démo (`contenu/scenes/ch01/`) et remplacez `contenu/bible.yaml` par la vôtre. Supprimez les médias de la démo dans `game/images/` et `game/videos/`, sauf `lena_scene_01.webm`, utilisé par le test Ren'Py `video_seule` de `game/testcases.rpy` (adaptez ce test si vous le retirez).
@@ -149,9 +176,13 @@ $RENPY_SDK/renpy.sh . test --overwrite-screenshots
    - `config/name` dans `project.godot` ;
    - `config.name`, `build.name` et `config.save_directory` dans `game/options.rpy`.
 4. **Construire.** Écrivez vos fiches, puis lancez `verifier`, `provisoires` et `generer`.
-5. **Garder le jeu d'essai.** Conservez `tests/fixtures/demo/` : ce jeu d'essai figé sert aux tests du moteur Godot et ne dépend pas de votre histoire.
+5. **Langues.** Déclarez `langues` dans votre bible (supprimez `contenu/traductions/en.yaml` si vous n'avez pas de traduction anglaise). L'interface Ren'Py existe en français (`game/tl/french/`) et en anglais (textes d'origine de Ren'Py). Pour une autre langue :
+   - extrayez ses textes d'interface avec `$RENPY_SDK/renpy.sh . translate <langue> --strings-only`, puis traduisez-les ;
+   - supprimez le sous-dossier `story/` que cette commande ajoute, puis relancez `generer` ;
+   - les textes de l'interface Godot sont dans `engine/ui/traductions_interface.gd`.
+6. **Garder le jeu d'essai.** Conservez `tests/fixtures/demo/` : ce jeu d'essai figé sert aux tests du moteur Godot et ne dépend pas de votre histoire.
 
-## 10. Exporter
+## 11. Exporter
 
 - **Ren'Py.** Utilisez « Build Distributions » dans le launcher. Les fichiers propres à Godot et aux outils sont déjà exclus dans `game/options.rpy`.
 - **Godot.** Dans « Projet → Exporter », ajoutez `*.rpy, *.json` aux filtres de fichiers non-ressources et excluez `*.webm`.

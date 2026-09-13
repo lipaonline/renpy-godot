@@ -26,12 +26,15 @@ func refresh(history: Array) -> void:
 		var row := HBoxContainer.new()
 		row.mouse_filter = MOUSE_FILTER_IGNORE
 		row.add_theme_constant_override("separation", 22)
+		# Répliques de l'histoire : traduites par l'interpréteur, pas par l'interface.
 		var speaker := Style.label(entry.name, Style.TEXT_SIZE, Color.from_string(entry.color, Style.ACCENT))
+		speaker.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		speaker.custom_minimum_size.x = 233
 		speaker.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		speaker.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 		row.add_child(speaker)
 		var text := RichTextLabel.new()
+		text.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		text.bbcode_enabled = true
 		text.fit_content = true
 		text.scroll_active = false

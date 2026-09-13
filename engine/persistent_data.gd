@@ -10,6 +10,8 @@ const DEFAULT_PREFERENCES := {
 	"fullscreen": false,
 	"music_volume": 1.0,
 	"sound_volume": 1.0,
+	## Code de la langue du jeu ; vide avant le premier lancement (langue du système).
+	"language": "",
 }
 
 var seen_lines: Dictionary = {}

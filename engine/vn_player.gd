@@ -12,6 +12,7 @@
 ##   --autoplay      démarre la partie tout de suite et avance seul
 ##   --actions=a,b   joue une suite d'actions d'interface, une toutes les 1,5 s
 ##                   (voir _run_action) : sert aux captures et aux tests visuels
+##   --langue=en     joue dans cette langue, sans changer la préférence enregistrée
 extends Control
 
 const Parser = preload("res://engine/rpy_parser.gd")
@@ -23,6 +24,8 @@ const Gallery = preload("res://engine/gallery.gd")
 const Style = preload("res://engine/ui/ui_style.gd")
 const GameMenu = preload("res://engine/ui/game_menu.gd")
 const QuickMenu = preload("res://engine/ui/quick_menu.gd")
+const Langues = preload("res://engine/langues.gd")
+const InterfaceTexts = preload("res://engine/ui/traductions_interface.gd")
 
 const STORY_DIR := "res://game/story"
 const GALLERY_PATH := "res://game/galerie.json"
@@ -36,6 +39,10 @@ const BLOCKING_EVENTS := ["say", "menu", "movie", "pause", "end", "error"]
 var _interp: Interpreter
 var _assets: Assets
 var _persistent: PersistentData
+var _langues: Langues
+var _story: Dictionary = {}
+var _language := ""
+var _forced_language := ""
 var _characters: Dictionary = {}
 var _waiting := ""
 var _step := 0
@@ -89,10 +96,16 @@ func _ready() -> void:
 	var gallery := Gallery.load_file(GALLERY_PATH, story)
 	for problem in gallery.errors:
 		push_warning(problem)
+	_story = story
+	_langues = Langues.new()
+	_langues.load_file()
 	_interp = Interpreter.new(story)
 	_interp.label_entered.connect(_persistent.mark_label)
-	_game_menu.context = {"persistent": _persistent, "gallery": gallery.entries, "assets": _assets, "history": []}
+	_game_menu.context = {"persistent": _persistent, "gallery": gallery.entries, "assets": _assets, "history": [],
+		"languages": _langues.languages, "translate": _interp.translate_string}
 	_apply_preferences()
+	if _waiting == "fatal":
+		return
 	var timer := Timer.new()
 	timer.wait_time = PERSISTENT_SAVE_INTERVAL
 	timer.autostart = true
@@ -374,7 +387,7 @@ func _show_scene(image: String, transition: String) -> void:
 	var previous := _background.texture
 	var texture: Texture2D = _assets.image_texture(image) if image != "" else null
 	_background.texture = texture
-	_missing_background.text = "" if texture != null or image == "" else "[ image manquante : %s ]" % image
+	_missing_background.text = "" if texture != null or image == "" else InterfaceTexts.t("[ image manquante : %s ]") % image
 	match transition:
 		"dissolve":
 			if previous != null:
@@ -509,7 +522,7 @@ func _play_movie(path: String) -> void:
 		return
 	var stream := Assets.video_stream(path)
 	if stream == null:
-		_show_notice("Vidéo : %s\n\nLa version Godot attend « %s » (Ogg Theora).\nCliquez pour continuer."
+		_show_notice(InterfaceTexts.t("Vidéo : %s\n\nLa version Godot attend « %s » (Ogg Theora).\nCliquez pour continuer.")
 			% [path, Assets.ogv_path(path).trim_prefix("res://")])
 		return
 	_video.stream = stream
@@ -625,6 +638,8 @@ func _on_menu_action(key: String, argument: Variant) -> void:
 		"quit":
 			_quit()
 		"preference":
+			if argument[0] == "language":
+				_forced_language = ""
 			_persistent.set_preference(argument[0], argument[1])
 			_apply_preferences()
 
@@ -657,11 +672,61 @@ func _refresh_quick_menu() -> void:
 func _apply_preferences() -> void:
 	_music.volume_db = _volume_db("music")
 	_sound.volume_db = _volume_db("sound")
+	var language := _wanted_language()
+	if language != _language:
+		_set_language(language)
 	if DisplayServer.get_name() == "headless":
 		return
 	var mode: DisplayServer.WindowMode = DisplayServer.WINDOW_MODE_FULLSCREEN if _persistent.preferences.fullscreen else DisplayServer.WINDOW_MODE_WINDOWED
 	if DisplayServer.window_get_mode() != mode:
 		DisplayServer.window_set_mode(mode)
+
+
+# --- Langue ---------------------------------------------------------------------------
+
+## Langue demandée par --langue, sinon la préférence. Au premier lancement (ou si la langue
+## a disparu du jeu) : celle du système si le jeu la propose, sinon celle des fiches,
+## comme Ren'Py (game/langues.rpy).
+func _wanted_language() -> String:
+	if _forced_language != "" and _langues.has(_forced_language):
+		return _forced_language
+	var code := str(_persistent.preferences.language)
+	if not _langues.has(code):
+		code = _langues.detect()
+		_persistent.set_preference("language", code)
+	return code
+
+
+func _set_language(code: String) -> void:
+	var translation = _langues.load_translation(code, _story)
+	for problem in _langues.warnings:
+		push_warning(problem)
+	_langues.warnings.clear()
+	if translation == null:
+		_fatal("La traduction « %s » contient des erreurs :\n\n%s" % [code, "\n".join(_langues.errors)])
+		return
+	_language = code
+	_game_menu.context.language = code
+	_interp.set_translation(translation)
+	InterfaceTexts.set_language(code)
+	_quick_menu.refresh_texts()
+	_game_menu.refresh_page.call_deferred()
+	_redisplay()
+
+
+## Réaffiche la réplique ou le menu en cours dans la nouvelle langue.
+func _redisplay() -> void:
+	if not _in_game or _waiting not in ["say", "menu"]:
+		return
+	var event := _interp.current_event()
+	if event.is_empty():
+		return
+	if _waiting == "menu":
+		_show_menu(event)
+	else:
+		var seen := _current_seen
+		_show_say(event)
+		_current_seen = seen
 
 
 # --- Sauvegardes ------------------------------------------------------------------------
@@ -738,6 +803,8 @@ func _parse_arguments() -> void:
 				_autoplay_choices.append(part.to_int())
 		elif arg.begins_with("--actions="):
 			_actions.append_array(Array(arg.trim_prefix("--actions=").split(",", false)))
+		elif arg.begins_with("--langue="):
+			_forced_language = arg.trim_prefix("--langue=")
 
 
 func _schedule_autoplay() -> void:
@@ -894,11 +961,15 @@ func _build_ui() -> void:
 	_dialogue.offset_bottom = 0
 	_dialogue.visible = false
 	_stage.add_child(_dialogue)
+	# Nom et réplique viennent de l'histoire, traduite par l'interpréteur : pas de
+	# traduction de l'interface sur ces nœuds.
 	_speaker = Style.label("", Style.NAME_SIZE, Style.ACCENT)
+	_speaker.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_speaker.position = Vector2(360, 4)
 	_speaker.size = Vector2(1000, 62)
 	_dialogue.add_child(_speaker)
 	_text = RichTextLabel.new()
+	_text.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	_text.bbcode_enabled = true
 	_text.scroll_active = false
 	_text.position = Vector2(402, 75)
@@ -928,6 +999,7 @@ func _build_ui() -> void:
 	_notice_layer.visible = false
 	_add_full(_stage, _notice_layer)
 	_notice = Style.label("", 30, Style.TEXT)
+	_notice.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED  # messages déjà traduits ou erreurs du script
 	_notice.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_notice.custom_minimum_size = Vector2(1300, 0)

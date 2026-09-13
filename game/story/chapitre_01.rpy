@@ -7,8 +7,8 @@ label ch01_sc01:
     # objectif : installer_l_ambiance
     # objectif : proposer_l_indice_de_la_photo
     scene rue_nuit with fade
-    "Il pleut depuis des heures quand j'arrive enfin devant l'immeuble."
-    moi "Troisième étage… C'est ici."
+    "Il pleut depuis des heures quand j'arrive enfin devant l'immeuble." id ch01_sc01_e08e9cdc
+    moi "Troisième étage… C'est ici." id ch01_sc01_227717a7
     menu:
 
         "Monter directement":
@@ -17,7 +17,7 @@ label ch01_sc01:
 
         "Regarder la boîte aux lettres":
             $ indice_photo = True
-            "Une vieille photo dépasse de la fente. Un homme devant un chantier… mon père ?"
+            "Une vieille photo dépasse de la fente. Un homme devant un chantier… mon père ?" id ch01_sc01_18ff5070
             jump ch01_sc02
 
 
@@ -27,12 +27,12 @@ label ch01_sc02:
     # objectif : choisir_entre_confiance_et_enquete
     scene appartement_soir with dissolve
     show lena sourire at right with dissolve
-    lena "Je ne pensais pas que tu viendrais."
+    lena "Je ne pensais pas que tu viendrais." id ch01_sc02_14e17bdd
     if indice_photo:
-        moi "Il y avait une photo dans ta boîte aux lettres."
-        lena "Tu as l'œil. On en reparlera."
+        moi "Il y avait une photo dans ta boîte aux lettres." id ch01_sc02_8d58a627
+        lena "Tu as l'œil. On en reparlera." id ch01_sc02_41989a26
     menu:
-        lena "Alors… tu restes un peu ?"
+        lena "Alors… tu restes un peu ?" id ch01_sc02_911f1e69
 
         "Lui faire confiance":
             $ relation_lena += 2
@@ -53,7 +53,7 @@ label ch01_sc03a:
     # CH01_SC03A — La confiance (appartement_lena, soir)
     # objectif : rapprochement_avec_lena
     show lena rougit
-    lena "Merci. Ça compte pour moi, tu sais."
+    lena "Merci. Ça compte pour moi, tu sais." id ch01_sc03a_06c46afe
     $ renpy.movie_cutscene("videos/lena_scene_01.webm")
     jump ch01_sc04
 
@@ -62,7 +62,7 @@ label ch01_sc03b:
     # CH01_SC03B — L'interrogatoire (appartement_lena, soir)
     # objectif : reveler_que_lena_connait_le_pere
     show lena serieuse
-    lena "Ton père… Oui, je l'ai connu. Bien plus que tu ne le crois."
+    lena "Ton père… Oui, je l'ai connu. Bien plus que tu ne le crois." id ch01_sc03b_e5b495de
     call ch01_souvenir
     $ mystere += 1
     jump ch01_sc04
@@ -71,24 +71,24 @@ label ch01_sc03b:
 label ch01_sc04:
     # CH01_SC04 — Fin de la démo (appartement_lena, soir)
     scene appartement_soir with fade
-    "{i}Fin de la démo{/i} — relation avec Léna : [relation_lena], mystère : [mystere]."
+    "{i}Fin de la démo{/i} — relation avec Léna : [relation_lena], mystère : [mystere]." id ch01_sc04_24a12dba
     if relation_lena >= 5:
-        "Léna m'a fait confiance ce soir."
+        "Léna m'a fait confiance ce soir." id ch01_sc04_e2a8df7c
     elif mystere >= 2:
-        "Je repars avec plus de questions que de réponses."
+        "Je repars avec plus de questions que de réponses." id ch01_sc04_9eb9ce0e
     else:
-        "La soirée s'achève sur un silence."
+        "La soirée s'achève sur un silence." id ch01_sc04_187203a5
     return
 
 
 label ch01_sc05:
     # CH01_SC05 — Fin solitaire (rue, nuit)
     scene rue_nuit with fade
-    "Je redescends l'escalier. La porte se referme derrière moi."
+    "Je redescends l'escalier. La porte se referme derrière moi." id ch01_sc05_eb701393
     return
 
 
 label ch01_souvenir:
     # CH01_SOUVENIR — Souvenir du père
-    "Un souvenir remonte : l'odeur du plâtre, et la voix de mon père sur le chantier."
+    "Un souvenir remonte : l'odeur du plâtre, et la voix de mon père sur le chantier." id ch01_souvenir_81d95cb6
     return

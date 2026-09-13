@@ -1,0 +1,15 @@
+{
+  "_genere_par": "Fichier généré par tools/fiches.py depuis contenu/ : ne pas modifier à la main.",
+  "source": {
+    "code": "fr",
+    "renpy": "french",
+    "nom": "Français"
+  },
+  "traductions": [
+    {
+      "code": "en",
+      "renpy": "english",
+      "nom": "English"
+    }
+  ]
+}

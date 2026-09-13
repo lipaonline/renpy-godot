@@ -10,9 +10,10 @@ Un petit jeu de démo écrit **une seule fois** et joué à l'identique par **Re
 
 ## Ce que contient le dépôt
 
-- **Un jeu de démo** : 7 scènes, 2 fins, une vidéo, une galerie débloquable. Il est décrit dans [contenu/](contenu/).
+- **Un jeu de démo** : 7 scènes, 2 fins, une vidéo, une galerie débloquable, jouable en français et en anglais. Il est décrit dans [contenu/](contenu/).
 - **Une chaîne d'écriture.** Une bible (personnages, lieux, variables) et des fiches de scène en YAML deviennent un script `.rpy` commun aux deux moteurs (`tools/fiches.py`). Toutes les routes sont vérifiées avant génération : conditions, variables, routes mortes, choix jamais proposés.
 - **Un lecteur Godot** qui joue ce script avec la même interface que Ren'Py : menu principal, sauvegardes avec vignettes, historique, retour arrière, avance rapide et automatique, préférences, galerie.
+- **Des traductions.** Les fiches sont écrites dans une langue ; chaque traduction a son fichier (`contenu/traductions/en.yaml`), tenu à jour par `traduire`, qui signale les répliques nouvelles ou modifiées. Les deux moteurs lisent les mêmes fichiers de traduction Ren'Py (`game/tl/`), et le joueur choisit la langue dans les préférences.
 - **Des tests des deux côtés.** Les parcours sont générés depuis les fiches : Godot et Ren'Py rejouent les mêmes routes et doivent arriver à la même fin.
 
 ## Démarrage
@@ -50,6 +51,7 @@ Au premier lancement de Ren'Py, ouvrez le projet depuis le launcher, ou passez s
 .venv/bin/python tools/fiches.py production            # images et vidéos à produire
 .venv/bin/python tools/fiches.py graphe                # graphe des routes (Mermaid)
 .venv/bin/python tools/fiches.py contexte CH01_SC02    # paquet pour écrire une scène
+.venv/bin/python tools/fiches.py traduire en           # met à jour la traduction anglaise
 python3 tools/convertir_videos.py                      # .webm → .ogv pour Godot
 ```
 
@@ -78,8 +80,10 @@ $RENPY_SDK/renpy.sh . test --overwrite-screenshots                 # routes et g
 
 ```
 contenu/          bible et fiches de scène : c'est ici qu'on écrit le jeu
+  traductions/    un fichier par traduction (en.yaml…)
 game/             dossier « game » de Ren'Py, partagé avec Godot
   story/          script .rpy généré depuis contenu/ (ne pas modifier à la main)
+  tl/             traductions lues par les deux moteurs : répliques générées (english/story/), interface Ren'Py
   images/, videos/  médias : .webm pour Ren'Py, .ogv pour Godot
   gui/, *.rpy     interface Ren'Py ; Godot en réutilise les images
 engine/           lecteur Godot : compilateur, interpréteur, interface

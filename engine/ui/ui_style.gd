@@ -39,10 +39,12 @@ static func text_button(text: String, font_size := INTERFACE_SIZE) -> Button:
 	return button
 
 
-## Bouton de choix de menu, avec les images de game/gui/button.
+## Bouton de choix de menu, avec les images de game/gui/button. Son texte vient de
+## l'histoire, déjà traduit par l'interpréteur : pas de traduction de l'interface.
 static func choice_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
+	button.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(1185, 0)
 	button.add_theme_font_size_override("font_size", TEXT_SIZE)

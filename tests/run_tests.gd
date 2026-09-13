@@ -13,7 +13,10 @@ const PersistentData = preload("res://engine/persistent_data.gd")
 const SaveSlots = preload("res://engine/save_slots.gd")
 const Gallery = preload("res://engine/gallery.gd")
 const Assets = preload("res://engine/assets.gd")
+const Langues = preload("res://engine/langues.gd")
+const InterfaceTexts = preload("res://engine/ui/traductions_interface.gd")
 
+const DEMO_DIR := "res://tests/fixtures/demo/game"
 const DEMO_STORY := "res://tests/fixtures/demo/game/story"
 const GAME_STORY := "res://game/story"
 const ROUTES_PATH := "res://tests/routes_attendues.json"
@@ -43,6 +46,11 @@ func _init() -> void:
 	test_persistent_and_slots()
 	print("Explorateur de routes (démo)")
 	test_route_explorer()
+	print("Traductions")
+	test_translation_parser()
+	test_translation_runtime()
+	test_demo_translation()
+	test_interface_texts()
 	print("Jeu (game/story)")
 	test_game_story()
 	print("Routes attendues (tools/fiches.py)")
@@ -329,6 +337,177 @@ func test_route_explorer() -> void:
 	check(report.endings.has("ch01_sc04") and report.endings.has("ch01_sc05"), "deux fins atteintes : %s" % [report.endings])
 
 
+const TRANSLATED_STORY := """
+define lena = Character(_("Léna"), color="#c8a2ff")
+default n = 2
+label start:
+    lena "Bonjour." id start_a
+    "Il reste [n] jours." id start_b
+    menu:
+        lena "Tu viens ?" id start_c
+        "Oui":
+            return
+        "Non":
+            return
+"""
+const ENGLISH := """
+translate english start_a:
+
+    # lena "Bonjour."
+    lena "Hello."
+
+translate english start_b:
+    "[n] days left."
+
+translate english start_c:
+    lena "Coming?"
+
+translate english autre:
+    "Orphan line."
+
+translate english strings:
+
+    old "Léna"
+    new "Lena"
+
+    old "Oui"
+    new "Yes"
+
+translate english python:
+    pass
+"""
+
+
+## [histoire, traduction anglaise] du petit script ci-dessus.
+func translation_sample() -> Array:
+	var parser := Parser.new()
+	parser.parse_string(TRANSLATED_STORY, "histoire.rpy")
+	var story = parser.finish()
+	if story == null:
+		return [null, null, parser.errors, []]
+	var tl := Parser.new()
+	tl.parse_translation_string(ENGLISH, "tl.rpy", "english")
+	return [story, tl.finish_translation(story), tl.errors, tl.warnings]
+
+
+func test_translation_parser() -> void:
+	var sample := translation_sample()
+	check(sample[0] != null, "script avec clauses id et noms entre _() : %s" % ", ".join(sample[2]))
+	if sample[0] == null:
+		return
+	var story: Dictionary = sample[0]
+	check(story.characters.lena.name == "Léna" and story.say_ids.has("start_c"), "nom entre _() et identifiants relevés")
+	check(sample[1] != null, "traduction lue : %s" % ", ".join(sample[2]))
+	if sample[1] != null:
+		check(sample[1].lines.size() == 4 and sample[1].strings.get("Oui") == "Yes", "répliques et textes traduits")
+	check(sample[3].size() == 1 and "autre" in sample[3][0], "traduction d'une réplique absente du script signalée : %s" % [sample[3]])
+
+	var duplicate := compile("label start:\n    \"a\" id x\n    \"b\" id x\n    return\n")
+	check(duplicate[0] == null and "déjà utilisé" in "\n".join(duplicate[1]), "identifiant de réplique en double refusé")
+	var in_story := compile("translate english x:\n    \"a\"\nlabel start:\n    return\n")
+	check(in_story[0] == null and "game/tl/" in "\n".join(in_story[1]), "translate dans game/story : renvoyé vers game/tl/")
+
+	var bad := Parser.new()
+	bad.parse_translation_string("""
+translate english start_a:
+    lena "Un."
+    lena "Deux."
+translate english start_b:
+    inconnu "Qui ?"
+translate english start_c:
+    "Valeur [m]"
+translate french start_d:
+    "Mauvaise langue."
+translate english start_e:
+    "Avec id." id start_e
+translate english strings:
+    old "a"
+    old "b"
+    new "B"
+    new "C"
+label ailleurs:
+    return
+""", "tl.rpy", "english")
+	check(bad.finish_translation(story) == null, "traduction invalide refusée")
+	var expected := [
+		[2, "une seule réplique"],
+		[6, "personnage inconnu : « inconnu »"],
+		[8, "variable inconnue dans le texte : [m]"],
+		[9, "traduction « french »"],
+		[12, "ne prend pas de clause id"],
+		[14, "« old » sans « new »"],
+		[17, "« new » sans « old »"],
+		[18, "seuls les blocs « translate english"],
+	]
+	for item in expected:
+		var found := false
+		for error in bad.errors:
+			if error.begins_with("tl.rpy:%d: " % item[0]) and item[1] in error:
+				found = true
+		check(found, "traduction, ligne %d : %s" % item)
+	check(bad.errors.size() == expected.size(), "aucune erreur en trop :\n    %s" % "\n    ".join(bad.errors))
+
+
+func test_translation_runtime() -> void:
+	var sample := translation_sample()
+	if sample[0] == null or sample[1] == null:
+		check(false, "exemple de traduction compilé")
+		return
+	var interp := Interpreter.new(sample[0])
+	interp.set_translation(sample[1])
+	interp.start()
+	var first := next_blocking(interp)
+	check(first.text == "Hello." and first.name == "Lena" and first.id == "start_a",
+		"réplique et nom traduits, même identifiant (texte déjà lu commun aux langues)")
+	check(next_blocking(interp).text == "2 days left.", "interpolation dans la traduction")
+	var menu := next_blocking(interp)
+	check(menu.prompt.text == "Coming?" and menu.choices[0].text == "Yes" and menu.choices[1].text == "Non",
+		"menu : question et choix traduits, choix sans traduction inchangé")
+	interp.set_translation({})
+	var again := interp.current_event()
+	check(again.type == "menu" and again.prompt.text == "Tu viens ?" and again.choices[0].text == "Oui"
+		and interp.history.back().text == "Tu viens ?", "changement de langue : menu réaffiché, historique mis à jour")
+
+	var other := Interpreter.new(sample[0])
+	other.start()
+	check(next_blocking(other).text == "Bonjour.", "sans traduction : texte d'origine")
+	other.set_translation(sample[1])
+	var current := other.current_event()
+	check(current.text == "Hello." and other.history.size() == 1 and other.history[0].text == "Hello.",
+		"changement de langue : réplique réaffichée sans doublon dans l'historique")
+
+
+func test_demo_translation() -> void:
+	var story := demo_story()
+	if story.is_empty():
+		return
+	var langues := Langues.new()
+	langues.load_file(DEMO_DIR.path_join("langues.json"))
+	check(langues.source() == "fr" and langues.has("en") and not langues.has("de"), "démo : langues fr et en")
+	var translation = langues.load_translation("en", story, DEMO_DIR.path_join("tl"))
+	check(translation != null and langues.warnings.is_empty(), "démo : traduction anglaise lue %s %s" % [langues.errors, langues.warnings])
+	if translation == null:
+		return
+	var missing: Array = story.say_ids.keys().filter(func(id: String) -> bool: return not translation.lines.has(id))
+	check(missing.is_empty(), "démo : toutes les répliques traduites (manquantes : %s)" % [missing])
+	var result := play(story, ["Check the letterbox", "Ask her about the photo"], translation)
+	check(result.store.mystere == 2 and "A memory comes back: the smell of plaster, and my father's voice on the building site." in result.lines,
+		"démo en anglais : choix traduits, route jouée jusqu'au bout")
+	check("Me: Third floor… This is it." in result.lines, "démo en anglais : nom du personnage traduit")
+
+
+func test_interface_texts() -> void:
+	var empty: Array = InterfaceTexts.TEXTS.en.keys().filter(func(text: String) -> bool: return str(InterfaceTexts.TEXTS.en[text]).strip_edges() == "")
+	check(empty.is_empty(), "interface : aucune traduction anglaise vide %s" % [empty])
+	var context := InterfaceTexts.QUICK_MENU_CONTEXT
+	InterfaceTexts.set_language("en")
+	var english := [InterfaceTexts.t("Nouvelle partie"), InterfaceTexts.t("Retour"), InterfaceTexts.t("Retour", context)]
+	InterfaceTexts.set_language("fr")
+	var french := [InterfaceTexts.t("Nouvelle partie"), InterfaceTexts.t("Retour"), InterfaceTexts.t("Retour", context)]
+	check(english == ["Start", "Return", "Back"], "interface en anglais, contexte du menu rapide : %s" % [english])
+	check(french == ["Nouvelle partie", "Retour", "Retour"], "interface en français, sans repli sur l'anglais : %s" % [french])
+
+
 func test_game_story() -> void:
 	var story := game_story()
 	check(not story.is_empty(), "le script du jeu compile sans erreur")
@@ -341,7 +520,8 @@ func test_game_story() -> void:
 	check(not report.endings.is_empty(), "au moins une fin : %s" % [report.endings])
 
 
-## Rejoue les routes calculées par l'explorateur Python : même fin et même état final.
+## Rejoue les routes calculées par l'explorateur Python : même fin et même état final,
+## dans la langue des fiches puis dans chaque traduction (choix cliqués par leur texte traduit).
 func test_expected_routes() -> void:
 	var story := game_story()
 	if story.is_empty():
@@ -351,17 +531,31 @@ func test_expected_routes() -> void:
 		return
 	var data = JSON.parse_string(FileAccess.get_file_as_string(ROUTES_PATH))
 	check(typeof(data) == TYPE_DICTIONARY and not data.routes.is_empty(), "au moins une route attendue")
+	var langues := Langues.new()
+	langues.load_file()
+	var translations := {}
+	for code in langues.languages.slice(1).map(func(language: Dictionary) -> String: return language.code):
+		translations[code] = langues.load_translation(code, story)
+		check(translations[code] != null, "traduction « %s » du jeu lue %s" % [code, langues.errors])
 	for route in data.routes:
-		var interp := Interpreter.new(story)
-		interp.start()
-		var result := drive(interp, route.choix)
-		var differences: Array = []
-		for variable in route.etat_final:
-			if interp.store.get(variable) != route.etat_final[variable]:
-				differences.append("%s = %s (attendu %s)" % [variable, interp.store.get(variable), route.etat_final[variable]])
-		var reached: bool = result.lines.back() == "[end]" and interp.current_label() == route.fin
-		check(reached and differences.is_empty(), "%s : %d choix → %s %s%s" % [route.nom, route.choix.size(), route.fin,
-			"" if reached else "(arrivée : %s, %s) " % [interp.current_label(), result.lines.back()], differences])
+		check_route(story, route, route.choix, {}, route.nom)
+		for code in route.get("choix_traduits", {}):
+			if translations.get(code) != null:
+				check_route(story, route, route.choix_traduits[code], translations[code], "%s (%s)" % [route.nom, code])
+
+
+func check_route(story: Dictionary, route: Dictionary, choices: Array, translation: Dictionary, name: String) -> void:
+	var interp := Interpreter.new(story)
+	interp.set_translation(translation)
+	interp.start()
+	var result := drive(interp, choices)
+	var differences: Array = []
+	for variable in route.etat_final:
+		if interp.store.get(variable) != route.etat_final[variable]:
+			differences.append("%s = %s (attendu %s)" % [variable, interp.store.get(variable), route.etat_final[variable]])
+	var reached: bool = result.lines.back() == "[end]" and interp.current_label() == route.fin
+	check(reached and differences.is_empty(), "%s : %d choix → %s %s%s" % [name, choices.size(), route.fin,
+		"" if reached else "(arrivée : %s, %s) " % [interp.current_label(), result.lines.back()], differences])
 
 
 func test_gallery() -> void:
@@ -439,8 +633,9 @@ func next_blocking(interp: Interpreter) -> Dictionary:
 
 
 ## Joue l'histoire en répondant aux menus avec les textes donnés, dans l'ordre.
-func play(story: Dictionary, answers: Array) -> Dictionary:
+func play(story: Dictionary, answers: Array, translation := {}) -> Dictionary:
 	var interp := Interpreter.new(story)
+	interp.set_translation(translation)
 	interp.start()
 	var result := drive(interp, answers)
 	result.store = interp.store

@@ -25,6 +25,9 @@ var history: Array = []
 var pc := 0
 var track_coverage := false
 var coverage: Dictionary = {}
+## Traduction en cours (rpy_parser.finish_translation), vide pour la langue des fiches :
+## {lines: {id: réplique traduite}, strings: {texte: traduction}}.
+var translation: Dictionary = {}
 
 var _names: PackedStringArray
 var _expressions: Dictionary = {}
@@ -205,6 +208,40 @@ func restore(snap: Dictionary) -> void:
 	_checkpoints.clear()
 
 
+# --- Langue ----------------------------------------------------------------------------
+
+func set_translation(value: Dictionary) -> void:
+	translation = value
+
+
+## Nom, choix ou titre traduit, comme les « translate strings » de Ren'Py.
+func translate_string(text: String) -> String:
+	return translation.get("strings", {}).get(text, text)
+
+
+## L'interaction en cours recalculée (après un changement de langue) : la réplique ou le
+## menu en attente, dont la ligne d'historique est mise à jour. Vide sinon.
+func current_event() -> Dictionary:
+	if _fatal != "" or _ended or _resume_pc < 0:
+		return {}
+	if _menu != null:
+		var event := _menu_event(_menu)
+		if event.prompt != null:
+			_replace_current_history(event.prompt)
+		return event
+	var instruction: Dictionary = story.program[_resume_pc]
+	if instruction.op != "say" or pc != _resume_pc + 1:
+		return {}
+	var said := _say_event(instruction)
+	_replace_current_history(said)
+	return said
+
+
+func _replace_current_history(say_event: Dictionary) -> void:
+	if _history_total > _history_before and not history.is_empty():
+		history[history.size() - 1] = {"name": say_event.name, "color": say_event.color, "text": say_event.text}
+
+
 ## Index de l'instruction de menu en attente, ou -1.
 func menu_pc() -> int:
 	return _resume_pc if _menu != null else -1
@@ -306,15 +343,20 @@ func _interaction(say_event: Variant) -> void:
 		_checkpoints.pop_front()
 
 
+## Réplique à afficher : sa traduction si elle existe (même identifiant, donc même
+## « texte déjà lu » dans toutes les langues), sinon l'original.
 func _say_event(instruction: Dictionary) -> Dictionary:
-	var event := {"type": "say", "id": instruction.get("id", ""), "who": instruction.who, "name": instruction.name,
-		"color": "", "what_color": "", "text": _interpolate(instruction.text)}
-	if instruction.who != "":
-		var character: Dictionary = story.characters[instruction.who]
+	var id: String = instruction.get("id", "")
+	var said: Dictionary = translation.get("lines", {}).get(id, instruction)
+	var event := {"type": "say", "id": id, "who": said.who, "name": said.name,
+		"color": "", "what_color": "", "text": _interpolate(said.text)}
+	if said.who != "":
+		var character: Dictionary = story.characters[said.who]
 		event.name = character.name
 		event.color = character.color
 		event.what_color = character.what_color
-	event.name = _interpolate(event.name)
+	if event.name != "":
+		event.name = _interpolate(translate_string(event.name))
 	return event
 
 
@@ -324,7 +366,7 @@ func _menu_event(instruction: Dictionary) -> Dictionary:
 		var choice: Dictionary = instruction.choices[i]
 		if choice.expr != "" and not _truthy(_eval(choice.expr)):
 			continue
-		choices.append({"index": i, "text": _interpolate(choice.text)})
+		choices.append({"index": i, "text": _interpolate(translate_string(choice.text))})
 	var prompt = null
 	if instruction.prompt != null:
 		prompt = _say_event(instruction.prompt)

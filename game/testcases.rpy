@@ -11,7 +11,8 @@ testsuite global:
 
 ## Vidéo seule, sans clic simulé : vérifie que Ren'Py lit bien le WebM.
 testcase video_seule:
-    click "Start"
+    pause until screen "main_menu"
+    run Start()
     pause 1.0
     run Jump("test_video_seule")
     pause 1.0

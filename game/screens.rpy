@@ -312,7 +312,7 @@ screen navigation():
         if main_menu:
 
             ## Galerie partagée avec le lecteur Godot (game/galerie.rpy).
-            textbutton _("Galerie") action ShowMenu("galerie")
+            textbutton _("Gallery") action ShowMenu("galerie")
 
         textbutton _("Preferences") action ShowMenu("preferences")
 
@@ -760,6 +760,14 @@ screen preferences():
                     textbutton _("Unseen Text") action Preference("skip", "toggle")
                     textbutton _("After Choices") action Preference("after choices", "toggle")
                     textbutton _("Transitions") action InvertSelected(Preference("transitions", "toggle"))
+
+                ## Langue du jeu (game/langues.rpy), comme dans les préférences du lecteur Godot.
+                if len(langues_disponibles) > 1:
+                    vbox:
+                        style_prefix "radio"
+                        label _("Language")
+                        for langue in langues_disponibles:
+                            textbutton langue["nom"] action Language(langue["renpy"])
 
                 ## Additional vboxes of type "radio_pref" or "check_pref" can be
                 ## added here, to add additional creator-defined preferences.

@@ -1,0 +1,114 @@
+# Traduction « en » (English) de « La photo (démo) ». Langue des fiches : fr.
+#
+# Complétez « texte ». Un texte vide n'est pas encore traduit : le jeu affiche l'original.
+# « source » rappelle le texte d'origine : ne le modifiez pas.
+# « a_revoir » : le texte d'origine a changé (ancienne version indiquée). Vérifiez la
+# traduction, puis supprimez la ligne « a_revoir ».
+# Gardez tels quels les [variables] et les balises {i}…{/i}.
+# Après une modification des fiches : .venv/bin/python tools/fiches.py traduire en
+
+repliques:
+
+  # CH01_SC01 — L'arrivée
+  ch01_sc01_e08e9cdc:
+    qui: narration
+    source: "Il pleut depuis des heures quand j'arrive enfin devant l'immeuble."
+    texte: "It has been raining for hours when I finally reach the building."
+  ch01_sc01_227717a7:
+    qui: moi
+    source: "Troisième étage… C'est ici."
+    texte: "Third floor… This is it."
+  ch01_sc01_18ff5070:
+    qui: narration
+    source: "Une vieille photo dépasse de la fente. Un homme devant un chantier… mon père ?"
+    texte: "An old photo sticks out of the slot. A man in front of a building site… my father?"
+
+  # CH01_SC02 — L'appartement de Léna
+  ch01_sc02_14e17bdd:
+    qui: lena
+    source: "Je ne pensais pas que tu viendrais."
+    texte: "I didn't think you'd come."
+  ch01_sc02_8d58a627:
+    qui: moi
+    source: "Il y avait une photo dans ta boîte aux lettres."
+    texte: "There was a photo in your letterbox."
+  ch01_sc02_41989a26:
+    qui: lena
+    source: "Tu as l'œil. On en reparlera."
+    texte: "You have a good eye. We'll talk about it later."
+  ch01_sc02_911f1e69:
+    qui: lena
+    source: "Alors… tu restes un peu ?"
+    texte: "So… will you stay a while?"
+
+  # CH01_SC03A — La confiance
+  ch01_sc03a_06c46afe:
+    qui: lena
+    source: "Merci. Ça compte pour moi, tu sais."
+    texte: "Thank you. It means a lot to me, you know."
+
+  # CH01_SC03B — L'interrogatoire
+  ch01_sc03b_e5b495de:
+    qui: lena
+    source: "Ton père… Oui, je l'ai connu. Bien plus que tu ne le crois."
+    texte: "Your father… Yes, I knew him. Far better than you think."
+
+  # CH01_SC04 — Fin de la démo
+  ch01_sc04_24a12dba:
+    qui: narration
+    source: "{i}Fin de la démo{/i} — relation avec Léna : [relation_lena], mystère : [mystere]."
+    texte: "{i}End of the demo{/i} — relationship with Léna: [relation_lena], mystery: [mystere]."
+  ch01_sc04_e2a8df7c:
+    qui: narration
+    source: "Léna m'a fait confiance ce soir."
+    texte: "Léna trusted me tonight."
+  ch01_sc04_9eb9ce0e:
+    qui: narration
+    source: "Je repars avec plus de questions que de réponses."
+    texte: "I leave with more questions than answers."
+  ch01_sc04_187203a5:
+    qui: narration
+    source: "La soirée s'achève sur un silence."
+    texte: "The evening ends in silence."
+
+  # CH01_SC05 — Fin solitaire
+  ch01_sc05_eb701393:
+    qui: narration
+    source: "Je redescends l'escalier. La porte se referme derrière moi."
+    texte: "I go back down the stairs. The door closes behind me."
+
+  # CH01_SOUVENIR — Souvenir du père
+  ch01_souvenir_81d95cb6:
+    qui: narration
+    source: "Un souvenir remonte : l'odeur du plâtre, et la voix de mon père sur le chantier."
+    texte: "A memory comes back: the smell of plaster, and my father's voice on the building site."
+
+textes:
+
+  # Noms des personnages
+  - source: "Moi"
+    texte: "Me"
+  - source: "Léna"
+    texte: "Léna"
+
+  # CH01_SC01 — L'arrivée : choix
+  - source: "Monter directement"
+    texte: "Go straight up"
+  - source: "Regarder la boîte aux lettres"
+    texte: "Check the letterbox"
+
+  # CH01_SC02 — L'appartement de Léna : choix
+  - source: "Lui faire confiance"
+    texte: "Trust her"
+  - source: "L'interroger sur la photo"
+    texte: "Ask her about the photo"
+  - source: "Repartir sous la pluie"
+    texte: "Leave in the rain"
+
+  # CH01_SC03A — La confiance : galerie
+  - source: "La confiance de Léna"
+    texte: "Léna's trust"
+
+  # CH01_SC03B — L'interrogatoire : galerie
+  - source: "Le secret de Léna"
+    texte: "Léna's secret"

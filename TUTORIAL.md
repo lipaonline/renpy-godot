@@ -4,7 +4,7 @@
 
 This tutorial starts from the demo game and takes you to your own game, played by Ren'Py and by Godot. Allow about an hour.
 
-The demo game, the tool commands and the scene-sheet keys are in French; their meaning is given as we go (`verifier` = check, `generer` = generate, `provisoires` = placeholders…).
+The demo game is written in French and translated into English. The tool commands and the scene-sheet keys are in French; their meaning is given as we go (`verifier` = check, `generer` = generate, `provisoires` = placeholders, `traduire` = translate…).
 
 ## 1. Install and play the demo
 
@@ -23,17 +23,19 @@ The demo game, the tool commands and the scene-sheet keys are in French; their m
    $RENPY_SDK/renpy.sh .          # $RENPY_SDK: the folder where you unpacked the SDK
    ```
 
-Try both endings: trust Léna, or leave in the rain. Look at the photo in the letterbox to unlock one more choice. Open the gallery from the main menu.
+Try both endings: trust Léna, or leave in the rain. Look at the photo in the letterbox to unlock one more choice. Open the gallery from the main menu, and switch to English in Preferences → Language.
 
 ## 2. Understand the pipeline
 
 ```
-contenu/bible.yaml            characters, locations, variables
+contenu/bible.yaml            characters, locations, variables, languages
 contenu/scenes/**/*.yaml      one sheet per scene
+contenu/traductions/en.yaml   English translation
         │  tools/fiches.py verifier   → checks every route
         │  tools/fiches.py generer    → writes:
         ▼
 game/story/*.rpy              shared script, read by Ren'Py AND by Godot
+game/tl/english/story/*.rpy   English translation, also read by both engines
 game/galerie.json             gallery
 tests/routes_attendues.json   routes for Godot to replay
 game/tests_routes.rpy         routes for Ren'Py to replay
@@ -134,7 +136,32 @@ In the sheets, Sam speaks with `- sam: "…"`, and effects change his variables:
 
 Give it to your writer or to an AI: the expected answer is the complete YAML sheet. Paste it, then run `verifier` again.
 
-## 8. Tests
+## 8. Translate the game
+
+The sheets are written in one language, declared in the bible, and each translation has its own file:
+
+```yaml
+langues:
+  source: fr            # language of the sheets
+  traductions: [en]     # translations: en, es, de, it, pt…
+```
+
+1. `.venv/bin/python tools/fiches.py traduire en` creates or updates `contenu/traductions/en.yaml`. It lists every line of the script, every character name, choice and gallery title, with its original text (`source`) and an empty `texte` to fill in.
+2. Fill in `texte`, then run `generer`: the translations are written to `game/tl/english/story/`, where Ren'Py and Godot both read them.
+3. In the game, Preferences → Language switches language. On first launch, the game picks the system language if it is available.
+
+After changing a sheet, run `traduire en` again:
+- new lines are added;
+- a translation whose original text changed is kept and marked `a_revoir` (to review), with the old text;
+- translations that no longer match anything move to `obsoletes`.
+
+`verifier` counts what is left to translate or to review, and checks that each translation keeps the `[variables]` and `{tags}` of the original.
+
+With a translator or an AI, `traduire en --paquet traduction.md` writes a pack: instructions, characters, glossary and entries to translate. Save the answer to a file, then run `traduire en --importer reponse.yaml`.
+
+Each line is linked to its translations by an identifier written into the script (`lena "…" id ch01_sc02_14e17bdd`). It is computed from the scene, the speaker and the text, so adding lines elsewhere does not change it.
+
+## 9. Tests
 
 ```sh
 .venv/bin/python -m unittest discover -s tests -p "test_*.py"
@@ -143,9 +170,9 @@ $RENPY_SDK/renpy.sh . lint
 $RENPY_SDK/renpy.sh . test --overwrite-screenshots
 ```
 
-`generer` picks a few routes that cover every ending and every choice. Godot must reach exactly the final state computed in Python; Ren'Py replays the same routes by clicking the choices. The tests therefore follow your story without you having to write them.
+`generer` picks a few routes that cover every ending and every choice. Godot must reach exactly the final state computed in Python; Ren'Py replays the same routes by clicking the choices. Both do so in every language, clicking the translated choices. The tests therefore follow your story without you having to write them.
 
-## 9. Start your own game from scratch
+## 10. Start your own game from scratch
 
 1. **Copy.** Copy this repository into a new folder, which becomes your project.
 2. **Clear the content.** Delete the demo sheets (`contenu/scenes/ch01/`) and replace `contenu/bible.yaml` with your own. Delete the demo media in `game/images/` and `game/videos/`, except `lena_scene_01.webm`, used by the Ren'Py test `video_seule` in `game/testcases.rpy` (adapt that test if you remove it).
@@ -153,9 +180,13 @@ $RENPY_SDK/renpy.sh . test --overwrite-screenshots
    - `config/name` in `project.godot`;
    - `config.name`, `build.name` and `config.save_directory` in `game/options.rpy`.
 4. **Build.** Write your sheets, then run `verifier`, `provisoires` and `generer`.
-5. **Keep the fixture.** Keep `tests/fixtures/demo/`: this frozen test game is used by the Godot engine tests and does not depend on your story.
+5. **Languages.** Declare `langues` in your bible (delete `contenu/traductions/en.yaml` if you have no English translation). The Ren'Py interface exists in French (`game/tl/french/`) and in English (Ren'Py's own texts). For another language:
+   - extract its interface texts with `$RENPY_SDK/renpy.sh . translate <language> --strings-only` and translate them;
+   - delete the `story/` subfolder this command adds, then run `generer` again;
+   - the Godot interface texts are in `engine/ui/traductions_interface.gd`.
+6. **Keep the fixture.** Keep `tests/fixtures/demo/`: this frozen test game is used by the Godot engine tests and does not depend on your story.
 
-## 10. Export
+## 11. Export
 
 - **Ren'Py.** Use "Build Distributions" in the launcher. Files specific to Godot and to the tools are already excluded in `game/options.rpy`.
 - **Godot.** In "Project → Export", add `*.rpy, *.json` to the non-resource file filters and exclude `*.webm`.

@@ -8,6 +8,7 @@ Le script du jeu (`game/story/*.rpy`) n'est plus écrit à la main. Il est **pro
 contenu/
 ├── bible.yaml          personnages, lieux, variables, règles éditoriales
 ├── scenes/…/*.yaml     une fiche par scène (sous-dossiers libres : ch01/, ch02/…)
+├── traductions/*.yaml  un fichier par traduction (en.yaml…), tenu à jour par traduire
 ├── production.md       (généré) images et vidéos à produire
 └── graphe.md           (généré) graphe des routes
 ```
@@ -28,6 +29,7 @@ python3 -m venv .venv
 5. **Génération.** `.venv/bin/python tools/fiches.py generer` écrit `game/story/*.rpy` et `game/galerie.json`, puis fait relire le résultat par le compilateur Godot.
 6. **Suivi.** `production` (images et vidéos à rendre) et `graphe` (routes en Mermaid).
 7. **Médias provisoires.** `provisoires` crée une image (dans `game/images/provisoires/`) ou une vidéo pour chaque média qui manque, afin que le jeu reste jouable. Dès qu'une image définitive du même nom arrive dans `game/images/`, la provisoire est retirée ; une vidéo remplacée est reconnue à son contenu. `production` distingue définitif, provisoire et manquant.
+8. **Traduction.** `traduire en` ajoute les nouvelles répliques et les nouveaux textes à `traductions/en.yaml`. Remplissez `texte`, puis lancez `generer`, qui écrit `game/tl/english/story/`. Voir [Traductions](#traductions).
 
 ## Tests générés
 
@@ -36,7 +38,7 @@ python3 -m venv .venv
 - `tests/routes_attendues.json` : Godot rejoue chaque route et doit obtenir la même fin et le même état final des variables que l'explorateur Python ;
 - `game/tests_routes.rpy` : Ren'Py rejoue les mêmes routes en cliquant les choix, puis ouvre la galerie après avoir débloqué toutes ses entrées.
 
-Ces tests suivent l'histoire automatiquement : il n'y a rien à mettre à jour à la main quand les fiches changent.
+Les deux moteurs rejouent les routes dans chaque langue du jeu, en cliquant les choix traduits. Ces tests suivent l'histoire automatiquement : il n'y a rien à mettre à jour à la main quand les fiches changent.
 
 ## Bible (`bible.yaml`)
 
@@ -48,6 +50,7 @@ Ces tests suivent l'histoire automatiquement : il n'y a rien à mettre à jour �
 | `variables.<nom>` | `defaut` (nombre, booléen ou texte), `min` et `max` (nombres), `description`. |
 | `regles_editoriales` | Liste de règles, reprises dans le contexte d'écriture. |
 | `synopsis`, `mystere_central` | Facultatifs ; repris dans le contexte d'écriture. |
+| `langues` | `source` : langue des fiches (`fr` par défaut). `traductions` : liste des codes de traduction (`en`, `es`, `de`, `it`, `pt`, `nl`, `pl`, `ru`, `ja`, `ko`, `zh`). |
 
 ## Fiche de scène
 
@@ -85,6 +88,30 @@ Ces tests suivent l'histoire automatiquement : il n'y a rien à mettre à jour �
 
 **Textes :** `[variable]` insère une valeur ; balises Ren'Py `{i}…{/i}`, `{b}…{/b}`.
 
+## Traductions
+
+Chaque code de `langues.traductions` a son fichier `traductions/<code>.yaml`, créé et tenu à jour par `.venv/bin/python tools/fiches.py traduire <code>` :
+
+```yaml
+repliques:                      # répliques, par identifiant
+  ch01_sc02_14e17bdd:
+    qui: lena                   # qui parle (pour information)
+    source: "Je ne pensais pas que tu viendrais."   # texte d'origine : ne pas modifier
+    texte: "I didn't think you'd come."             # traduction ; vide = pas encore traduit
+textes:                         # noms, choix et titres de galerie, par texte d'origine
+  - source: "Lui faire confiance"
+    texte: "Trust her"
+```
+
+- **Identifiants.** Chaque réplique reçoit un identifiant calculé d'après sa scène, son personnage et son texte. `generer` l'écrit dans le script (`lena "…" id ch01_sc02_14e17bdd`). Ajouter des répliques ailleurs ne le change pas.
+- **Modifications.** Quand une fiche change, relancez `traduire` :
+  - les nouvelles répliques et les nouveaux textes sont ajoutés avec un `texte` vide ;
+  - si un texte d'origine a changé, sa traduction est gardée et marquée `a_revoir`, avec l'ancien original : vérifiez la traduction, puis supprimez la ligne `a_revoir` ;
+  - les traductions qui ne correspondent plus à rien passent dans `obsoletes`.
+- **Traductions manquantes :** ce n'est pas une erreur, le jeu affiche le texte d'origine. `verifier` les compte.
+- **Traducteur ou IA.** `traduire en --paquet traduction.md` écrit un paquet : consignes, personnages, glossaire et entrées à traduire. Enregistrez la réponse dans un fichier et reprenez-la avec `traduire en --importer reponse.yaml`.
+- **Fichiers produits.** `generer` écrit les répliques traduites dans `game/tl/<langue>/story/chapitre_XX.rpy` (blocs `translate` de Ren'Py), et les textes dans `textes.rpy` (`translate strings`). Ren'Py et Godot les lisent tous les deux.
+
 ## Pièges YAML
 
 - Mettre **tous les textes entre guillemets** : une phrase contenant « : » casse le fichier sinon.
@@ -101,4 +128,5 @@ Ces tests suivent l'histoire automatiquement : il n'y a rien à mettre à jour �
   - les menus sans choix disponible ;
   - les scènes jamais atteintes et les choix jamais proposés ;
   - l'absence de fin.
+- **Traductions :** répliques et textes à traduire ou à revoir, `[variables]` et `{balises}` conservées, choix d'un même menu toujours distincts une fois traduits, entrées qui ne correspondent plus au script.
 - **Script :** aucun `.rpy` écrit à la main ne redéfinit un label ou une variable produits par les fiches. Les fichiers écrits à la main ne sont jamais écrasés sans `--remplacer`.

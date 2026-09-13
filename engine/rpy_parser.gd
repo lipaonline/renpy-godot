@@ -7,6 +7,13 @@
 ##   var parser = preload("res://engine/rpy_parser.gd").new()
 ##   parser.parse_dir("res://game/story")
 ##   var story = parser.finish()   # null en cas d'erreur : voir parser.errors
+##
+## Il lit aussi les traductions Ren'Py d'une langue (game/tl/<langue>/), avec un autre
+## compilateur : blocs « translate <langue> <id>: » (une réplique) et
+## « translate <langue> strings: » (old / new).
+##   var tl_parser = preload("res://engine/rpy_parser.gd").new()
+##   tl_parser.parse_translation_dir("res://game/tl/english", "english")
+##   var translation = tl_parser.finish_translation(story)   # null en cas d'erreur
 extends RefCounted
 
 const IDENT := "[A-Za-z_][A-Za-z0-9_]*"
@@ -26,6 +33,8 @@ const OUT_OF_SUBSET := ["python", "init", "screen", "transform", "style", "trans
 	"nvl", "voice", "queue", "camera", "layeredimage", "testcase", "for"]
 
 var errors: PackedStringArray = []
+## Problèmes non bloquants (traduction d'une réplique absente du script).
+var warnings: PackedStringArray = []
 
 var _program: Array = []
 var _labels: Dictionary = {}
@@ -38,6 +47,12 @@ var _checks: Array = []
 var _file := ""
 var _current_label := ""
 var _re: Dictionary = {}
+## Identifiants de répliques donnés par la clause « id » : id → "fichier:ligne".
+var _say_ids: Dictionary = {}
+## Lecture d'une traduction : langue Ren'Py, répliques traduites (id → réplique) et textes.
+var _language := ""
+var _tl_lines: Dictionary = {}
+var _tl_strings: Dictionary = {}
 
 
 func _init() -> void:
@@ -51,8 +66,11 @@ func _init() -> void:
 		"pause": "^pause(?:\\s+([0-9]*\\.?[0-9]+))?$",
 		"renpy_pause": "^renpy\\.pause\\s*\\(\\s*([0-9]*\\.?[0-9]+)?\\s*\\)$",
 		"choice": "^(" + STR_RE + ")\\s*(?:if\\s+(.+?))?\\s*:$",
-		"say": "^(?:(" + IDENT + ")\\s+)?(" + STR_RE + ")$",
-		"say_named": "^(" + STR_RE + ")\\s+(" + STR_RE + ")$",
+		"say": "^(?:(" + IDENT + ")\\s+)?(" + STR_RE + ")(?:\\s+id\\s+(" + IDENT + "))?$",
+		"say_named": "^(" + STR_RE + ")\\s+(" + STR_RE + ")(?:\\s+id\\s+(" + IDENT + "))?$",
+		"translatable": "^_\\s*\\(\\s*(" + STR_RE + ")\\s*\\)$",
+		"translate": "^translate\\s+(" + IDENT + ")\\s+(" + IDENT + ")\\s*:$",
+		"old_new": "^(old|new)\\s+(" + STR_RE + ")$",
 		"say_attributes": "^" + IDENT + "(?:\\s+[A-Za-z0-9_]+)+\\s+" + STR_RE + "$",
 		"goto": "^(jump|call)\\s+(" + IDENT + ")$",
 		"window": "^window\\s+(show|hide|auto)$",
@@ -87,6 +105,7 @@ func parse_file(path: String) -> void:
 func parse_string(source: String, file_name: String) -> void:
 	_file = file_name
 	_current_label = ""
+	_language = ""
 	for line in _build_tree(_read_lines(source)):
 		_compile_toplevel(line)
 	# Comme dans Ren'Py, la fin d'un fichier équivaut à un return.
@@ -96,17 +115,7 @@ func parse_string(source: String, file_name: String) -> void:
 ## Vérifie les références croisées et renvoie l'histoire compilée, ou null.
 func finish() -> Variant:
 	var names := PackedStringArray(_variables.keys())
-	for check in _checks:
-		_file = check.file
-		var kind: String = check.kind
-		if kind == "label" and not _labels.has(check.name):
-			_error(check.line, "label inconnu : « %s »" % check.name)
-		elif kind == "character" and not _characters.has(check.name):
-			_error(check.line, "personnage inconnu : « %s » (déclarez-le avec define %s = Character(\"…\"))" % [check.name, check.name])
-		elif kind == "var" and not _variables.has(check.name):
-			_error(check.line, "variable inconnue dans le texte : [%s]" % check.name)
-		elif kind == "expr":
-			_check_expression(check, names)
+	_run_checks(names)
 	if not _labels.has("start"):
 		errors.append("label « start » introuvable : c'est le point d'entrée du jeu")
 	if not errors.is_empty():
@@ -118,7 +127,111 @@ func finish() -> Variant:
 		"inits": _inits,
 		"images": _images,
 		"variables": names,
+		"say_ids": _say_ids,
 	}
+
+
+# --- Traductions ------------------------------------------------------------------
+
+func parse_translation_dir(dir: String, language: String) -> void:
+	for path in _list_rpy(dir):
+		if FileAccess.file_exists(path):
+			parse_translation_string(FileAccess.get_file_as_string(path), path, language)
+
+
+func parse_translation_string(source: String, file_name: String, language: String) -> void:
+	_file = file_name
+	_current_label = ""
+	_language = language
+	for line in _build_tree(_read_lines(source)):
+		_compile_translation(line)
+
+
+## Vérifie les traductions lues avec les personnages et variables du jeu, et les renvoie :
+## {language, lines: {id: réplique traduite}, strings: {texte: traduction}}, ou null.
+func finish_translation(story: Dictionary) -> Variant:
+	_characters = story.characters
+	for name in story.variables:
+		_variables[name] = true
+	_run_checks(PackedStringArray(story.variables))
+	var ids: Dictionary = story.get("say_ids", {})
+	for identifier in _tl_lines:
+		if not ids.has(identifier):
+			var said: Dictionary = _tl_lines[identifier]
+			warnings.append("%s:%d: traduction d'une réplique absente du script : %s" % [said.file, said.line, identifier])
+	if not errors.is_empty():
+		return null
+	return {"language": _language, "lines": _tl_lines, "strings": _tl_strings}
+
+
+func _compile_translation(line: Dictionary) -> void:
+	var m: RegExMatch = _re.translate.search(line.text)
+	if m == null:
+		_error(line.n, "seuls les blocs « translate %s …: » sont permis dans les traductions" % _language)
+		return
+	if m.get_string(1) != _language:
+		_error(line.n, "traduction « %s » parmi celles de la langue « %s »" % [m.get_string(1), _language])
+		return
+	var identifier := m.get_string(2)
+	match identifier:
+		"strings":
+			_compile_strings(line)
+		"python", "style":
+			pass  # Réglages de l'interface Ren'Py (polices, styles) : sans objet dans le lecteur Godot.
+		_:
+			_compile_translated_line(identifier, line)
+
+
+func _compile_translated_line(identifier: String, line: Dictionary) -> void:
+	if _tl_lines.has(identifier):
+		_error(line.n, "réplique « %s » déjà traduite" % identifier)
+		return
+	if line.block.size() != 1 or not line.block[0].block.is_empty():
+		_error(line.n, "un bloc translate contient une seule réplique dans le sous-ensemble")
+		return
+	var said = _parse_say(line.block[0])
+	if said != null:
+		_tl_lines[identifier] = said
+
+
+func _compile_strings(line: Dictionary) -> void:
+	var pending := ""
+	var pending_line := -1
+	for child in line.block:
+		var m: RegExMatch = _re.old_new.search(child.text)
+		if m == null or not child.block.is_empty():
+			_error(child.n, "attendu : old \"texte\" puis new \"traduction\"")
+			continue
+		var text := _unquote(m.get_string(2))
+		if m.get_string(1) == "old":
+			if pending_line >= 0:
+				_error(pending_line, "« old » sans « new »")
+			pending = text
+			pending_line = child.n
+		elif pending_line < 0:
+			_error(child.n, "« new » sans « old » juste avant")
+		else:
+			if _tl_strings.has(pending):
+				_error(pending_line, "texte « %s » déjà traduit" % pending)
+			else:
+				_tl_strings[pending] = text
+			pending_line = -1
+	if pending_line >= 0:
+		_error(pending_line, "« old » sans « new »")
+
+
+func _run_checks(names: PackedStringArray) -> void:
+	for check in _checks:
+		_file = check.file
+		var kind: String = check.kind
+		if kind == "label" and not _labels.has(check.name):
+			_error(check.line, "label inconnu : « %s »" % check.name)
+		elif kind == "character" and not _characters.has(check.name):
+			_error(check.line, "personnage inconnu : « %s » (déclarez-le avec define %s = Character(\"…\"))" % [check.name, check.name])
+		elif kind == "var" and not _variables.has(check.name):
+			_error(check.line, "variable inconnue dans le texte : [%s]" % check.name)
+		elif kind == "expr":
+			_check_expression(check, names)
 
 
 # --- Lecture et indentation ------------------------------------------------------
@@ -257,8 +370,12 @@ func _parse_character(args: String, line: Dictionary) -> Dictionary:
 		var part := parts[i].strip_edges()
 		var kwarg: RegExMatch = _re.kwarg.search(part)
 		if kwarg == null:
+			var translatable: RegExMatch = _re.translatable.search(part)
 			if i == 0 and _re.string.search(part) != null:
 				character.name = _unquote(part)
+			elif i == 0 and translatable != null:
+				# _("Nom") : nom traduit par les « translate strings » de chaque langue.
+				character.name = _unquote(translatable.get_string(1))
 			elif i != 0 or part != "None":
 				_error(line.n, "argument inattendu dans Character() : %s" % part)
 			continue
@@ -565,13 +682,15 @@ func _parse_say(line: Dictionary) -> Variant:
 			_checks.append({"kind": "character", "name": who, "file": _file, "line": line.n})
 		var said := _unquote(m.get_string(2))
 		_check_text(said, line)
-		return {"op": "say", "who": who, "name": "", "text": said, "id": _say_id(who, said), "line": line.n, "file": _file.get_file()}
+		return {"op": "say", "who": who, "name": "", "text": said, "id": _line_id(m.get_string(3), who, said, line),
+			"line": line.n, "file": _file.get_file()}
 	m = _re.say_named.search(text)
 	if m != null:
 		var said := _unquote(m.get_string(2))
 		var speaker := _unquote(m.get_string(1))
 		_check_text(said, line)
-		return {"op": "say", "who": "", "name": speaker, "text": said, "id": _say_id(speaker, said), "line": line.n, "file": _file.get_file()}
+		return {"op": "say", "who": "", "name": speaker, "text": said, "id": _line_id(m.get_string(3), speaker, said, line),
+			"line": line.n, "file": _file.get_file()}
 	if _re.say_attributes.search(text) != null:
 		_error(line.n, "attributs d'image dans une réplique non supportés : utilisez « show » avant la réplique")
 	else:
@@ -684,8 +803,21 @@ func _emit(instruction: Dictionary) -> int:
 	return _program.size() - 1
 
 
-## Identifiant stable d'une réplique (texte déjà lu) : ne change que si le label,
-## le personnage ou le texte changent, pas quand on insère des lignes ailleurs.
+## Identifiant d'une réplique : celui de la clause « id » (qui la relie à ses traductions),
+## sinon une empreinte stable (texte déjà lu), qui ne change que si le label, le
+## personnage ou le texte changent, pas quand on insère des lignes ailleurs.
+func _line_id(explicit: String, speaker: String, text: String, line: Dictionary) -> String:
+	if explicit == "":
+		return _say_id(speaker, text)
+	if _language != "":
+		_error(line.n, "une réplique traduite ne prend pas de clause id : l'identifiant est celui du bloc translate")
+	elif _say_ids.has(explicit):
+		_error(line.n, "identifiant de réplique « %s » déjà utilisé (%s)" % [explicit, _say_ids[explicit]])
+	else:
+		_say_ids[explicit] = "%s:%d" % [_file.get_file(), line.n]
+	return explicit
+
+
 func _say_id(speaker: String, text: String) -> String:
 	return ("%s|%s|%s" % [_current_label, speaker, text]).md5_text()
 
@@ -695,6 +827,8 @@ func _error(line: int, message: String) -> void:
 
 
 func _out_of_subset(keyword: String) -> String:
+	if keyword == "translate":
+		return "les traductions vont dans game/tl/<langue>/ (tools/fiches.py generer les y écrit), pas dans game/story/"
 	return "« %s » ne fait pas partie du sous-ensemble : ce code doit rester dans un fichier Ren'Py hors de game/story/" % keyword
 
 

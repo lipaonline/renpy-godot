@@ -4,6 +4,7 @@ extends HBoxContainer
 signal action(key: String)
 
 const Style = preload("res://engine/ui/ui_style.gd")
+const Texts = preload("res://engine/ui/traductions_interface.gd")
 const ITEMS := [
 	["rollback", "Retour"], ["history", "Historique"], ["skip", "Passer"], ["auto", "Auto"],
 	["save", "Sauvegarder"], ["quicksave", "Sauv. rapide"], ["quickload", "Charg. rapide"],
@@ -20,10 +21,18 @@ func _init() -> void:
 	add_theme_constant_override("separation", 30)
 	for item in ITEMS:
 		var button := Style.text_button(item[1], Style.QUICK_SIZE)
+		# Textes traduits dans leur contexte par refresh_texts(), pas automatiquement.
+		button.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		button.toggle_mode = item[0] in TOGGLES
 		button.pressed.connect(_on_pressed.bind(item[0]))
 		add_child(button)
 		_buttons[item[0]] = button
+
+
+## Textes des boutons dans la langue de l'interface.
+func refresh_texts() -> void:
+	for item in ITEMS:
+		_buttons[item[0]].text = Texts.t(item[1], Texts.QUICK_MENU_CONTEXT)
 
 
 func set_toggle(key: String, on: bool) -> void:
