@@ -49,6 +49,26 @@ translate french strings:
     old "Gallery"
     new "Galerie"
 
+    # game/screens.rpy:309
+    old "Characters"
+    new "Personnages"
+
+    # game/personnages.rpy
+    old "Skills"
+    new "Compétences"
+
+    # game/personnages.rpy
+    old "Relationships"
+    new "Relations"
+
+    # game/temps.rpy
+    old "Day"
+    new "Jour"
+
+    # game/personnages.rpy
+    old "No character sheet in game/personnages.json."
+    new "Aucune fiche dans game/personnages.json."
+
     # game/screens.rpy:317
     old "Preferences"
     new "Préférences"

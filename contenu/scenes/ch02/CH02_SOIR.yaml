@@ -1,0 +1,37 @@
+id: CH02_SOIR
+titre: Le soir, chez Léna
+lieu: appartement_lena
+moment: soir
+personnages: [moi, lena]
+objectif_narratif:
+  - conclure_la_demo_selon_l_enquete_et_la_confiance
+resume: Fin de la démo. Léna livre ce qu'elle sait, selon l'enquête et la confiance.
+conditions:
+  - moment == "soir"
+
+contenu:
+  - decor: appartement_lena
+    transition: fade
+  - si: evenement_anniversaire_lena
+    alors:
+      - narration: "Sur la table, un gâteau entamé et une seule bougie : c'est son anniversaire, et elle n'en a rien dit."
+  - montrer: lena sourire
+    position: right
+    transition: dissolve
+  - lena: "Tu es revenu. Alors, ta journée ?"
+  - si: mystere >= 4
+    alors:
+      - montrer: lena serieuse
+      - lena: "Tu sais presque tout. Il est parti pour protéger quelqu'un sur ce chantier. Et il m'a écrit, chaque année."
+      - narration: "{i}Fin de la démo{/i} — relation avec Léna : [lena_moi], mystère : [mystere]. Léna a tenu sa promesse jusqu'au bout, et l'a rompue pour moi."
+    sinon_si:
+      - si: lena_moi >= 6
+        alors:
+          - montrer: lena rougit
+          - lena: "Je ne peux pas encore tout te dire. Mais reste, ce soir. On a le temps."
+          - narration: "{i}Fin de la démo{/i} — relation avec Léna : [lena_moi], mystère : [mystere]. La promesse tient encore, mais plus pour longtemps."
+    sinon:
+      - lena: "Tu n'as pas trouvé grand-chose. Reviens quand tu en sauras plus."
+      - narration: "{i}Fin de la démo{/i} — relation avec Léna : [lena_moi], mystère : [mystere]. La porte se referme, sans claquer."
+
+suite: CH02_EPILOGUE

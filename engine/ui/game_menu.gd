@@ -1,5 +1,5 @@
 ## Menu principal et menu de jeu, construits comme ceux de Ren'Py : navigation à
-## gauche, page à droite (historique, sauvegarde, chargement, préférences, galerie).
+## gauche, page à droite (historique, personnages, sauvegarde, chargement, préférences, galerie).
 extends Control
 
 signal action(key: String, argument: Variant)
@@ -10,6 +10,7 @@ const HistoryPage = preload("res://engine/ui/history_page.gd")
 const SlotsPage = preload("res://engine/ui/slots_page.gd")
 const PreferencesPage = preload("res://engine/ui/preferences_page.gd")
 const GalleryPage = preload("res://engine/ui/gallery_page.gd")
+const CharactersPage = preload("res://engine/ui/characters_page.gd")
 const GalleryViewer = preload("res://engine/ui/gallery_viewer.gd")
 
 const MAIN_NAVIGATION := [
@@ -17,16 +18,17 @@ const MAIN_NAVIGATION := [
 	["preferences", "Préférences"], ["quit", "Quitter"],
 ]
 const GAME_NAVIGATION := [
-	["history", "Historique"], ["save", "Sauvegarder"], ["load", "Charger"],
+	["history", "Historique"], ["characters", "Personnages"], ["save", "Sauvegarder"], ["load", "Charger"],
 	["preferences", "Préférences"], ["main_menu", "Menu principal"], ["quit", "Quitter"],
 ]
 const TITLES := {
 	"history": "Historique", "save": "Sauvegarder", "load": "Charger",
-	"preferences": "Préférences", "gallery": "Galerie",
+	"preferences": "Préférences", "gallery": "Galerie", "characters": "Personnages",
 }
 
-## Données fournies par le lecteur : persistent, gallery, assets, history, languages,
-## language (langue affichée) et translate (traduction des titres de la galerie).
+## Données fournies par le lecteur : persistent, gallery, characters, store (variables de la
+## partie), assets, history, languages, language (langue affichée) et translate (traduction
+## des titres de la galerie et des noms des fiches).
 var context: Dictionary = {}
 var in_game := false
 var page := ""
@@ -130,6 +132,12 @@ func ask(question: String, on_yes: Callable) -> void:
 	_confirm.visible = true
 
 
+## Ouvre l'onglet d'un personnage de la page « Personnages » (action scriptée « character:<id> »).
+func select_character(character_id: String) -> void:
+	if page == "characters":
+		_page("characters").select(character_id)
+
+
 func view_gallery_entry(index: int) -> void:
 	var entries: Array = context.get("gallery", [])
 	if index >= 0 and index < entries.size() and context.persistent.is_label_seen(entries[index].label):
@@ -179,6 +187,8 @@ func _open(target: String) -> void:
 			node.refresh(context.persistent.preferences, context.get("languages", []), context.get("language", ""))
 		"gallery":
 			node.refresh(context.get("gallery", []), context.persistent, context.assets, context.get("translate", Callable()))
+		"characters":
+			node.refresh(context.get("characters", []), context.get("store", {}), context.assets, context.get("translate", Callable()))
 
 
 func _page(target: String) -> Control:
@@ -201,6 +211,8 @@ func _page(target: String) -> Control:
 			var gallery := GalleryPage.new()
 			gallery.view_requested.connect(func(entry: Dictionary) -> void: _viewer.open(entry, context.assets))
 			node = gallery
+		"characters":
+			node = CharactersPage.new()
 	node.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	_content.add_child(node)
 	_pages[key] = node
@@ -226,7 +238,7 @@ func _update_navigation() -> void:
 
 func _on_navigation(key: String) -> void:
 	match key:
-		"history", "save", "load", "preferences", "gallery":
+		"history", "save", "load", "preferences", "gallery", "characters":
 			_open(key)
 		"start":
 			action.emit("start", null)

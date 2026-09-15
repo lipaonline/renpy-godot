@@ -7,14 +7,16 @@ A small demo game written **once** and played identically by **Ren'Py 8.5** and 
 | Ren'Py | Godot |
 |---|---|
 | ![The demo in Ren'Py](docs/captures/renpy_demo.png) | ![The same scene in Godot](docs/captures/godot_demo.png) |
+| ![The rooms of the building in Ren'Py](docs/captures/renpy_pieces.png) | ![The town map in Godot](docs/captures/godot_carte.png) |
 
 > Every document exists in English and in French. The demo game is written in French and translated into English (Preferences → Language). The tool commands and the scene-sheet keys are in French (`verifier` = check, `generer` = generate, `traduire` = translate, `titre` = title…); the documentation translates them.
 
 ## What's inside
 
-- **A demo game**: 7 scenes, 2 endings, a video and an unlockable gallery, playable in French and English. It lives in [contenu/](contenu/).
-- **A writing toolchain.** A story bible (characters, locations, variables) and YAML scene sheets are turned into a `.rpy` script shared by both engines (`tools/fiches.py`). Every route is checked before generation: entry conditions, variables, dead ends, choices that are never offered.
-- **A Godot player** that runs this script with the same interface as Ren'Py: main menu, saves with thumbnails, history, rollback, skip and auto-forward, preferences, gallery.
+- **A demo game**: 16 scenes, 2 endings, a video, an unlockable gallery and a free-roaming day (a town map, the rooms of a flat and of its building, characters whose whereabouts change with the time of day), playable in French and English. It lives in [contenu/](contenu/).
+- **A writing toolchain.** A story bible (characters, locations, variables, maps) and YAML scene sheets are turned into a `.rpy` script shared by both engines (`tools/fiches.py`). Every route is checked before generation: entry conditions, variables, dead ends, choices and locations that are never offered.
+- **Navigation.** An outdoor map with locations placed on an image, and indoors a row of round room icons at the bottom of the screen; on every location, the avatars of the characters present. Rooms can be hidden under a condition (a time of day, a key). Both engines read the same `game/navigation.json`.
+- **A Godot player** that runs this script with the same interface as Ren'Py: main menu, saves with thumbnails, history, rollback, skip and auto-forward, preferences, gallery, maps.
 - **Translations.** The sheets are written in one language; each translation has its own file (`contenu/traductions/en.yaml`), kept up to date by `traduire`, which flags new and changed lines. Both engines read the same Ren'Py translation files (`game/tl/`), and the player chooses the language in the preferences.
 - **Tests on both sides.** Play-through routes are generated from the scene sheets; Godot and Ren'Py replay the same routes and must reach the same ending.
 

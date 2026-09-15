@@ -1,0 +1,12 @@
+id: CH02_SALLE_DE_BAIN
+titre: La salle de bain
+lieu: salle_de_bain
+personnages: [moi]
+resume: "Un peu d'eau sur le visage. Ne coûte pas de temps."
+
+contenu:
+  - decor: salle_de_bain_matin
+    transition: dissolve
+  - narration: "De l'eau froide sur le visage. Dans le miroir piqué, j'ai ses yeux, paraît-il."
+
+carte: appartement

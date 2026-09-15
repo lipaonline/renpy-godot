@@ -1,9 +1,10 @@
-## Rapport des routes du jeu : labels inatteignables, choix jamais proposés, fins.
+## Rapport des routes du jeu : labels inatteignables, choix et lieux jamais proposés, fins.
 ##   godot --headless --path . --script res://tools/routes.gd
 extends SceneTree
 
 const Parser = preload("res://engine/rpy_parser.gd")
 const RouteExplorer = preload("res://engine/route_explorer.gd")
+const Navigation = preload("res://engine/navigation.gd")
 
 
 func _init() -> void:
@@ -14,13 +15,18 @@ func _init() -> void:
 		printerr("Erreurs de compilation :\n  " + "\n  ".join(parser.errors))
 		quit(1)
 		return
-	var report := RouteExplorer.new().explore(story)
+	var navigation := Navigation.load_file("res://game/navigation.json", story)
+	if not navigation.errors.is_empty():
+		printerr("Erreurs dans les cartes de navigation :\n  " + "\n  ".join(navigation.errors))
+		quit(1)
+		return
+	var report := RouteExplorer.new().explore(story, navigation.data)
 	print("États explorés : %d%s" % [report.states, "" if report.complete else " (limite atteinte, exploration partielle)"])
 	print("\nFins atteintes (label : nombre d'états finaux distincts)")
 	for label in report.endings:
 		print("  %s : %d" % [label, report.endings[label]])
 	_print_list("Labels jamais atteints", report.unreached_labels)
-	_print_list("Choix jamais proposés", report.never_offered)
+	_print_list("Choix et lieux jamais proposés", report.never_offered)
 	_print_list("Erreurs d'exécution", report.errors)
 	quit(0 if report.errors.is_empty() else 1)
 

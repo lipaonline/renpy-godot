@@ -1,0 +1,340 @@
+{
+  "_genere_par": "Fichier généré par tools/fiches.py depuis contenu/ : ne pas modifier à la main.",
+  "cartes": {
+    "france": {
+      "titre": "La France",
+      "affichage": "carte",
+      "image": "carte_france",
+      "parent": "",
+      "lieux": [
+        {
+          "lieu": "lyon",
+          "nom": "Lyon",
+          "icone": "",
+          "x": 62,
+          "y": 58,
+          "label": "",
+          "carte": "ville",
+          "si": "",
+          "temps": null,
+          "raccourci": false
+        },
+        {
+          "lieu": "paris",
+          "nom": "Paris",
+          "icone": "",
+          "x": 48,
+          "y": 24,
+          "label": "",
+          "carte": "paris",
+          "si": "moment != \"soir\"",
+          "temps": {
+            "creneaux": 1
+          },
+          "raccourci": false
+        },
+        {
+          "lieu": "cannes",
+          "nom": "Cannes",
+          "icone": "",
+          "x": 68,
+          "y": 78,
+          "label": "",
+          "carte": "cannes",
+          "si": "moment != \"soir\"",
+          "temps": {
+            "creneaux": 1
+          },
+          "raccourci": false
+        }
+      ]
+    },
+    "paris": {
+      "titre": "Paris",
+      "affichage": "carte",
+      "image": "carte_paris",
+      "parent": "france",
+      "lieux": [
+        {
+          "lieu": "paris_archives",
+          "nom": "Les archives",
+          "icone": "",
+          "x": 50,
+          "y": 50,
+          "label": "ch02_paris",
+          "carte": "",
+          "si": "moment != \"soir\"",
+          "temps": null,
+          "raccourci": false
+        }
+      ]
+    },
+    "cannes": {
+      "titre": "Cannes",
+      "affichage": "carte",
+      "image": "carte_cannes",
+      "parent": "france",
+      "lieux": [
+        {
+          "lieu": "cannes_plage",
+          "nom": "La plage",
+          "icone": "",
+          "x": 50,
+          "y": 60,
+          "label": "ch02_cannes",
+          "carte": "",
+          "si": "moment != \"soir\"",
+          "temps": null,
+          "raccourci": false
+        }
+      ]
+    },
+    "ville": {
+      "titre": "Lyon",
+      "affichage": "carte",
+      "image": "carte_ville",
+      "parent": "france",
+      "lieux": [
+        {
+          "lieu": "immeuble",
+          "nom": "L'immeuble",
+          "icone": "",
+          "x": 50,
+          "y": 36,
+          "label": "",
+          "carte": "immeuble",
+          "si": "",
+          "temps": null,
+          "raccourci": false
+        },
+        {
+          "lieu": "chantier",
+          "nom": "Le chantier",
+          "icone": "",
+          "x": 19,
+          "y": 68,
+          "label": "ch02_chantier",
+          "carte": "",
+          "si": "moment != \"soir\"",
+          "temps": null,
+          "raccourci": false
+        },
+        {
+          "lieu": "cafe",
+          "nom": "Le café de la gare",
+          "icone": "",
+          "x": 80,
+          "y": 66,
+          "label": "ch02_cafe",
+          "carte": "",
+          "si": "moment != \"soir\"",
+          "temps": null,
+          "raccourci": false
+        }
+      ]
+    },
+    "immeuble": {
+      "titre": "L'immeuble",
+      "affichage": "pieces",
+      "image": "",
+      "parent": "ville",
+      "lieux": [
+        {
+          "lieu": "hall",
+          "nom": "Le hall",
+          "icone": "icone_hall",
+          "x": 50,
+          "y": 50,
+          "label": "ch02_hall",
+          "carte": "",
+          "si": "moment != \"soir\"",
+          "temps": null,
+          "raccourci": false
+        },
+        {
+          "lieu": "cave",
+          "nom": "La cave",
+          "icone": "icone_cave",
+          "x": 50,
+          "y": 50,
+          "label": "ch02_cave",
+          "carte": "",
+          "si": "moment != \"soir\"",
+          "temps": null,
+          "raccourci": false
+        },
+        {
+          "lieu": "appartement_lena",
+          "nom": "L'appartement de Léna",
+          "icone": "icone_appartement_lena",
+          "x": 50,
+          "y": 50,
+          "label": "ch02_lena",
+          "carte": "",
+          "si": "moment != \"soir\"",
+          "temps": null,
+          "raccourci": false
+        },
+        {
+          "lieu": "appartement_lena",
+          "nom": "L'appartement de Léna",
+          "icone": "icone_appartement_lena",
+          "x": 50,
+          "y": 50,
+          "label": "ch02_soir",
+          "carte": "",
+          "si": "moment == \"soir\"",
+          "temps": null,
+          "raccourci": false
+        },
+        {
+          "lieu": "appartement_pere",
+          "nom": "L'appartement de mon père",
+          "icone": "icone_appartement_pere",
+          "x": 50,
+          "y": 50,
+          "label": "",
+          "carte": "appartement",
+          "si": "moment != \"soir\"",
+          "temps": null,
+          "raccourci": true
+        }
+      ]
+    },
+    "appartement": {
+      "titre": "L'appartement de mon père",
+      "affichage": "pieces",
+      "image": "",
+      "parent": "immeuble",
+      "lieux": [
+        {
+          "lieu": "salon",
+          "nom": "Le salon",
+          "icone": "icone_salon",
+          "x": 50,
+          "y": 50,
+          "label": "ch02_salon",
+          "carte": "",
+          "si": "moment != \"soir\"",
+          "temps": null,
+          "raccourci": false
+        },
+        {
+          "lieu": "cuisine",
+          "nom": "La cuisine",
+          "icone": "icone_cuisine",
+          "x": 50,
+          "y": 50,
+          "label": "ch02_cuisine",
+          "carte": "",
+          "si": "",
+          "temps": null,
+          "raccourci": false
+        },
+        {
+          "lieu": "chambre",
+          "nom": "La chambre",
+          "icone": "icone_chambre",
+          "x": 50,
+          "y": 50,
+          "label": "ch02_chambre",
+          "carte": "",
+          "si": "",
+          "temps": null,
+          "raccourci": false
+        },
+        {
+          "lieu": "salle_de_bain",
+          "nom": "La salle de bain",
+          "icone": "icone_salle_de_bain",
+          "x": 50,
+          "y": 50,
+          "label": "ch02_salle_de_bain",
+          "carte": "",
+          "si": "",
+          "temps": null,
+          "raccourci": false
+        }
+      ]
+    }
+  },
+  "raccourcis": [
+    {
+      "lieu": "appartement_pere",
+      "nom": "L'appartement de mon père",
+      "icone": "icone_appartement_pere",
+      "x": 50,
+      "y": 50,
+      "label": "",
+      "carte": "appartement",
+      "si": "moment != \"soir\"",
+      "temps": null,
+      "raccourci": true,
+      "carte_origine": "immeuble"
+    }
+  ],
+  "personnages": {
+    "lena": {
+      "nom": "Léna",
+      "couleur": "#c8a2ff",
+      "avatar": "lena avatar",
+      "variable": "lieu_lena",
+      "presence": [
+        {
+          "lieu": "appartement_lena",
+          "si": "moment == \"matin\""
+        },
+        {
+          "lieu": "cafe",
+          "si": "moment == \"midi\" and lena_moi >= 5"
+        },
+        {
+          "lieu": "chantier",
+          "si": "moment == \"midi\""
+        },
+        {
+          "lieu": "appartement_lena",
+          "si": ""
+        }
+      ]
+    },
+    "karim": {
+      "nom": "Karim",
+      "couleur": "#f2b45c",
+      "avatar": "karim avatar",
+      "variable": "lieu_karim",
+      "presence": [
+        {
+          "lieu": "chantier",
+          "si": "moment != \"soir\""
+        },
+        {
+          "lieu": "cafe",
+          "si": ""
+        }
+      ]
+    }
+  },
+  "scenes": {
+    "ch01_sc01": "rue",
+    "ch01_sc02": "appartement_lena",
+    "ch01_sc03a": "appartement_lena",
+    "ch01_sc03b": "appartement_lena",
+    "ch01_sc04": "appartement_lena",
+    "ch01_sc05": "rue",
+    "ch02_cafe": "cafe",
+    "ch02_cannes": "cannes_plage",
+    "ch02_cave": "cave",
+    "ch02_chambre": "chambre",
+    "ch02_chantier": "chantier",
+    "ch02_cuisine": "cuisine",
+    "ch02_epilogue": "rue",
+    "ch02_hall": "hall",
+    "ch02_lena": "appartement_lena",
+    "ch02_matin": "chambre",
+    "ch02_paris": "paris_archives",
+    "ch02_salle_de_bain": "salle_de_bain",
+    "ch02_salon": "salon",
+    "ch02_soir": "appartement_lena"
+  }
+}

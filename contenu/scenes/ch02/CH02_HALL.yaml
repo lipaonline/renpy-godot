@@ -1,0 +1,21 @@
+id: CH02_HALL
+titre: Le hall
+lieu: hall
+personnages: [moi]
+objectif_narratif:
+  - rattraper_l_indice_de_la_photo
+resume: La boîte aux lettres de Léna. Si la photo n'a pas encore été vue, elle est toujours là.
+
+contenu:
+  - decor: hall_immeuble
+    transition: dissolve
+  - si: indice_photo
+    alors:
+      - narration: "La boîte aux lettres de Léna est vide. La photo, je l'ai déjà vue."
+    sinon:
+      - narration: "Une vieille photo dépasse encore de la fente. Un homme devant un chantier… mon père. Cette fois, je la prends."
+      - effets: {indice_photo: true, mystere: 1, moi_observation: 1}
+  - temps: 1
+  - appel: CH02_HEURE
+
+carte: immeuble

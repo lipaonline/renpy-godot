@@ -1,0 +1,14 @@
+{
+  "_genere_par": "Fichier généré par tools/fiches.py depuis contenu/ : ne pas modifier à la main.",
+  "cartes": {},
+  "raccourcis": [],
+  "personnages": {},
+  "scenes": {
+    "ch01_sc01": "rue",
+    "ch01_sc02": "appartement_lena",
+    "ch01_sc03a": "appartement_lena",
+    "ch01_sc03b": "appartement_lena",
+    "ch01_sc04": "appartement_lena",
+    "ch01_sc05": "rue"
+  }
+}

@@ -1,0 +1,17 @@
+id: CH02_EPILOGUE
+titre: Trois mois plus tard
+lieu: rue
+moment: matin
+personnages: [moi]
+objectif_narratif:
+  - clore_la_demo_sur_une_ellipse
+resume: "Ellipse de trois mois : le protagoniste repasse devant l'immeuble un matin d'hiver. Fin de la démo."
+
+contenu:
+  - temps: {mois: 3, creneau: matin}
+  - decor: rue_jour
+    transition: fade
+  - narration: "Trois mois ont passé. Nous sommes le [jour_mois]/[mois]/[annee], et je repasse devant l'immeuble sans plus chercher personne."
+  - narration: "{i}Fin de la démo.{/i}"
+
+fin: true

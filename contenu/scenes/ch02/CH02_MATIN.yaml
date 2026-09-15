@@ -1,0 +1,18 @@
+id: CH02_MATIN
+titre: Le lendemain
+lieu: chambre
+moment: matin
+personnages: [moi]
+objectif_narratif:
+  - ouvrir_la_journee_libre
+resume: "Le lendemain matin, le protagoniste se réveille dans la chambre de son père. Une journée pour chercher des réponses avant de revoir Léna le soir : les pièces de l'appartement, l'immeuble, puis la ville."
+notes: "Première scène de la journée libre : elle se termine par carte: appartement, et les icônes des pièces restent visibles dans chaque pièce ensuite."
+
+contenu:
+  - temps: matin
+  - decor: chambre_matin
+    transition: fade
+  - narration: "Je me réveille dans le lit de mon père, entre les cartons. Dehors, la pluie a cessé."
+  - moi: "Une journée. L'appartement, l'immeuble, la ville : par où je commence ?"
+
+carte: appartement

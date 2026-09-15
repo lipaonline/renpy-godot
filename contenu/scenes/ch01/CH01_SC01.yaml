@@ -1,7 +1,7 @@
 id: CH01_SC01
 titre: L'arrivée
 lieu: rue
-moment: nuit
+moment: soir
 personnages: [moi]
 objectif_narratif:
   - installer_l_ambiance
@@ -17,12 +17,12 @@ contenu:
 choix:
   - id: monter
     libelle: "Monter directement"
-    effets: {relation_lena: 1}
+    effets: {lena_moi: 1}
     destination: CH01_SC02
 
   - id: boite
     libelle: "Regarder la boîte aux lettres"
-    effets: {indice_photo: true}
+    effets: {indice_photo: true, moi_observation: 1}
     contenu:
       - narration: "Une vieille photo dépasse de la fente. Un homme devant un chantier… mon père ?"
     destination: CH01_SC02

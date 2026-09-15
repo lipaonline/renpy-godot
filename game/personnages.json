@@ -1,0 +1,152 @@
+{
+  "_genere_par": "Fichier généré par tools/fiches.py depuis contenu/ : ne pas modifier à la main.",
+  "personnages": {
+    "moi": {
+      "nom": "Moi",
+      "couleur": "#9ad0ff",
+      "avatar": "",
+      "jauges": [],
+      "competences": [
+        {
+          "variable": "moi_observation",
+          "nom": "Observation",
+          "min": 0,
+          "max": 5,
+          "paliers": []
+        }
+      ],
+      "relations": [
+        {
+          "variable": "lena_moi",
+          "nom": "Léna",
+          "min": 0,
+          "max": 10,
+          "paliers": [
+            {
+              "des": 0,
+              "nom": "distante"
+            },
+            {
+              "des": 4,
+              "nom": "voisine"
+            },
+            {
+              "des": 6,
+              "nom": "amie"
+            },
+            {
+              "des": 8,
+              "nom": "confidente"
+            }
+          ],
+          "avec": "lena",
+          "couleur": "#c8a2ff"
+        }
+      ]
+    },
+    "lena": {
+      "nom": "Léna",
+      "couleur": "#c8a2ff",
+      "avatar": "lena avatar",
+      "jauges": [],
+      "competences": [
+        {
+          "variable": "lena_photographie",
+          "nom": "Photographie",
+          "min": 0,
+          "max": 5,
+          "paliers": []
+        }
+      ],
+      "relations": [
+        {
+          "variable": "lena_moi",
+          "nom": "Moi",
+          "min": 0,
+          "max": 10,
+          "paliers": [
+            {
+              "des": 0,
+              "nom": "distante"
+            },
+            {
+              "des": 4,
+              "nom": "voisine"
+            },
+            {
+              "des": 6,
+              "nom": "amie"
+            },
+            {
+              "des": 8,
+              "nom": "confidente"
+            }
+          ],
+          "avec": "moi",
+          "couleur": "#9ad0ff"
+        },
+        {
+          "variable": "lena_karim",
+          "nom": "Karim",
+          "min": 0,
+          "max": 10,
+          "paliers": [
+            {
+              "des": 0,
+              "nom": "étrangers"
+            },
+            {
+              "des": 4,
+              "nom": "collègues"
+            },
+            {
+              "des": 7,
+              "nom": "complices"
+            }
+          ],
+          "avec": "karim",
+          "couleur": "#f2b45c"
+        }
+      ]
+    },
+    "karim": {
+      "nom": "Karim",
+      "couleur": "#f2b45c",
+      "avatar": "karim avatar",
+      "jauges": [],
+      "competences": [
+        {
+          "variable": "karim_chantier",
+          "nom": "Chantier",
+          "min": 0,
+          "max": 5,
+          "paliers": []
+        }
+      ],
+      "relations": [
+        {
+          "variable": "lena_karim",
+          "nom": "Léna",
+          "min": 0,
+          "max": 10,
+          "paliers": [
+            {
+              "des": 0,
+              "nom": "étrangers"
+            },
+            {
+              "des": 4,
+              "nom": "collègues"
+            },
+            {
+              "des": 7,
+              "nom": "complices"
+            }
+          ],
+          "avec": "lena",
+          "couleur": "#c8a2ff"
+        }
+      ]
+    }
+  }
+}

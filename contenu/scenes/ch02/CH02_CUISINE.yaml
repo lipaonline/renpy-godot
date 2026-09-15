@@ -1,0 +1,12 @@
+id: CH02_CUISINE
+titre: La cuisine
+lieu: cuisine
+personnages: [moi]
+resume: "Un café dans la cuisine du père. Ne coûte pas de temps."
+
+contenu:
+  - decor: cuisine_matin
+    transition: dissolve
+  - narration: "La cafetière tousse encore. Par la fenêtre, la cour et, plus loin, les grues du chantier."
+
+carte: appartement

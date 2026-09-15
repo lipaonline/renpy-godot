@@ -305,6 +305,9 @@ screen navigation():
 
             textbutton _("History") action ShowMenu("history")
 
+            ## Fiches des personnages partagées avec le lecteur Godot (game/personnages.rpy).
+            textbutton _("Characters") action ShowMenu("personnages")
+
             textbutton _("Save") action ShowMenu("save")
 
         textbutton _("Load") action ShowMenu("load")

@@ -12,6 +12,7 @@ langues:
 synopsis: >-
   Sous la pluie, le protagoniste rend visite à Léna, la voisine de son père disparu. Une vieille photo
   glissée dans la boîte aux lettres pourrait tout changer : lui faire confiance, ou l'interroger ?
+  Le lendemain, une journée libre dans la ville pour chercher des réponses avant de revoir Léna le soir.
 
 mystere_central:
   question: Pourquoi une photo du père se trouve-t-elle dans la boîte aux lettres de Léna ?
@@ -27,6 +28,14 @@ personnages:
     biographie: Revient dans la ville de son enfance pour vider l'appartement de son père, disparu il y a dix ans.
     personnalite: Méfiant, curieux, sarcastique quand il est mal à l'aise.
     desirs: Comprendre pourquoi son père est parti.
+    traits: [observateur, obstiné]
+    # Compétences : variables moi_<nom>, modifiables par « effets », testables dans les fiches.
+    competences:
+      observation:
+        defaut: 0
+        min: 0
+        max: 5
+        description: Sens du détail ; monte à chaque indice remarqué.
 
   lena:
     nom: Léna
@@ -39,22 +48,248 @@ personnages:
     limites: Refuse qu'on fouille chez elle ; ne parle du père que si la confiance est établie.
     secrets:
       - Elle a travaillé avec le père du protagoniste sur un chantier.
+    traits: [photographe, tient ses promesses]
+    # Relations : variables lena_<autre>, valables pour les deux personnages ; le plus haut
+    # palier atteint donne son nom (écran « Personnages »).
+    relations:
+      moi:
+        defaut: 3
+        min: 0
+        max: 10
+        description: Confiance de Léna envers le protagoniste.
+        paliers: {0: distante, 4: voisine, 6: amie, 8: confidente}
+      karim:
+        defaut: 5
+        min: 0
+        max: 10
+        description: Ce que Léna et Karim partagent du chantier et du père.
+        paliers: {0: étrangers, 4: collègues, 7: complices}
+    competences:
+      photographie:
+        defaut: 4
+        min: 0
+        max: 5
+        description: Son métier ; elle voit ce que les autres ne regardent pas.
     images: [lena sourire, lena rougit, lena serieuse]
+    # Petit portrait affiché sur les cartes et les vignettes des pièces où elle se trouve.
+    avatar: lena avatar
+    # Où elle se trouve, recalculé à chaque carte : la première règle vraie gagne, sinon absente.
+    # Le résultat est la variable lieu_lena, utilisable dans les fiches (si: lieu_lena == "cafe").
+    presence:
+      - lieu: appartement_lena
+        si: moment == "matin"
+      - lieu: cafe
+        si: moment == "midi" and lena_moi >= 5
+      - lieu: chantier
+        si: moment == "midi"
+      - lieu: appartement_lena
+
+  karim:
+    nom: Karim
+    couleur: "#f2b45c"
+    age: 52
+    role: chef de chantier, ancien collègue du père
+    biographie: Dirige depuis vingt ans le chantier de la photo. Il a vu le père partir.
+    personnalite: Bourru, direct, loyal.
+    desirs: Que le chantier finisse sans histoires.
+    limites: Ne parle du père qu'à quelqu'un qui tient déjà un indice.
+    secrets:
+      - Il sait où le père est parti.
+    traits: [bourru, loyal]
+    competences:
+      chantier:
+        defaut: 5
+        max: 5
+        description: Vingt ans de chantier ; rien ne lui échappe sur le terrain.
+    images: [karim neutre]
+    avatar: karim avatar
+    presence:
+      - lieu: chantier
+        si: moment != "soir"
+      - lieu: cafe
 
 lieux:
+  lyon:
+    nom: Lyon
+    description: La ville du père, entre Rhône et Saône.
+  paris:
+    nom: Paris
+    description: Deux heures de train ; les archives du bâtiment y sont conservées.
+  cannes:
+    nom: Cannes
+    description: La carte postale du père venait d'ici.
+  paris_archives:
+    nom: Les archives
+    description: Salle de lecture des archives du bâtiment, registres des chantiers.
+    decors: [archives_jour]
+  cannes_plage:
+    nom: La plage
+    description: La plage de la carte postale, hors saison.
+    decors: [plage_jour]
   rue:
+    nom: La rue
     description: Rue étroite sous la pluie, immeuble ancien aux fenêtres éclairées.
-    decors: [rue_nuit]
+    decors: [rue_nuit, rue_jour]
+  immeuble:
+    nom: L'immeuble
+    description: Immeuble ancien de trois étages ; ses parties communes forment la carte « immeuble ».
+  hall:
+    nom: Le hall
+    description: Hall de l'immeuble, carrelage usé, rangée de boîtes aux lettres.
+    decors: [hall_immeuble]
+    icone: icone_hall
+  cave:
+    nom: La cave
+    description: Cave commune de l'immeuble, fermée le soir.
+    decors: [cave_immeuble]
+    icone: icone_cave
   appartement_lena:
+    nom: L'appartement de Léna
+    # Décor choisi selon le créneau (« decor: appartement_lena » dans les fiches).
     description: Salon encombré de tirages photo, grande fenêtre sur la ville.
-    decors: [appartement_soir]
+    decors: {matin: appartement_jour, midi: appartement_jour, soir: appartement_soir}
+    icone: icone_appartement_lena
+  appartement_pere:
+    nom: L'appartement de mon père
+    description: L'appartement du père, au deuxième ; ses pièces forment la carte « appartement ».
+    icone: icone_appartement_pere
+  salon:
+    nom: Le salon
+    description: Salon du père, cartons à moitié faits, un canapé.
+    decors: [salon_matin]
+    icone: icone_salon
+  cuisine:
+    nom: La cuisine
+    description: Petite cuisine, une cafetière, une fenêtre sur la cour.
+    decors: [cuisine_matin]
+    icone: icone_cuisine
+  chambre:
+    nom: La chambre
+    description: Chambre du père, lit fait, une commode.
+    decors: [chambre_matin]
+    icone: icone_chambre
+  salle_de_bain:
+    nom: La salle de bain
+    description: Salle de bain étroite, miroir piqué.
+    decors: [salle_de_bain_matin]
+    icone: icone_salle_de_bain
+  chantier:
+    nom: Le chantier
+    description: Le chantier de la photo, grues et palissades, en bordure de ville.
+    decors: [chantier_jour]
+  cafe:
+    nom: Le café de la gare
+    description: Café de quartier face à la gare, vue sur le chantier.
+    decors: [cafe_jour]
 
+# Cartes de navigation. Deux affichages : « carte » (une image, des lieux placés dessus, x et y en
+# pourcentage de l'image) et « pieces » (une barre en bas de l'écran, une vignette par pièce avec son
+# icône). Un lieu joue une scène (scene) ou ouvre une sous-carte (carte), par exemple les pièces d'un
+# bâtiment ; la sous-carte garde un bouton de retour vers sa carte parente. Une scène affiche une
+# carte en se terminant par « carte: ville ». Sur chaque lieu, le jeu montre les personnages présents
+# (leur avatar, sinon leur nom).
+cartes:
+  # La France : chaque ville est une sous-carte ; le voyage coûte un créneau (« temps »).
+  france:
+    titre: La France
+    affichage: carte
+    image: carte_france
+    lieux:
+      - lieu: lyon
+        x: 62
+        y: 58
+        carte: ville
+      - lieu: paris
+        x: 48
+        y: 24
+        carte: paris
+        temps: 1
+        si: moment != "soir"
+      - lieu: cannes
+        x: 68
+        y: 78
+        carte: cannes
+        temps: 1
+        si: moment != "soir"
+  paris:
+    titre: Paris
+    affichage: carte
+    image: carte_paris
+    parent: france
+    lieux:
+      - lieu: paris_archives
+        x: 50
+        y: 50
+        scene: CH02_PARIS
+        si: moment != "soir"
+  cannes:
+    titre: Cannes
+    affichage: carte
+    image: carte_cannes
+    parent: france
+    lieux:
+      - lieu: cannes_plage
+        x: 50
+        y: 60
+        scene: CH02_CANNES
+        si: moment != "soir"
+  ville:
+    titre: Lyon
+    parent: france
+    image: carte_ville
+    lieux:
+      - lieu: immeuble
+        x: 50
+        y: 36
+        carte: immeuble
+      - lieu: chantier
+        x: 19
+        y: 68
+        scene: CH02_CHANTIER
+        si: moment != "soir"
+      - lieu: cafe
+        x: 80
+        y: 66
+        scene: CH02_CAFE
+        si: moment != "soir"
+  immeuble:
+    titre: L'immeuble
+    affichage: pieces
+    parent: ville
+    lieux:
+      - lieu: hall
+        scene: CH02_HALL
+        si: moment != "soir"
+      - lieu: cave
+        scene: CH02_CAVE
+        si: moment != "soir"              # invisible le soir : la cave est fermée
+      - lieu: appartement_lena
+        scene: CH02_LENA
+        si: moment != "soir"
+      - lieu: appartement_lena
+        scene: CH02_SOIR
+        si: moment == "soir"
+      - lieu: appartement_pere
+        carte: appartement         # ouvre les pièces de l'appartement
+        raccourci: true            # « chez moi » : proposé depuis toutes les cartes
+        si: moment != "soir"       # le soir, on est attendu chez Léna
+  appartement:
+    titre: L'appartement de mon père
+    affichage: pieces
+    parent: immeuble
+    lieux:
+      - lieu: salon
+        scene: CH02_SALON
+        si: moment != "soir"              # les cartons prennent du temps : plus le soir
+      - lieu: cuisine
+        scene: CH02_CUISINE
+      - lieu: chambre
+        scene: CH02_CHAMBRE
+      - lieu: salle_de_bain
+        scene: CH02_SALLE_DE_BAIN
+
+# Variables globales ; la relation avec Léna est une relation du personnage (lena_moi).
 variables:
-  relation_lena:
-    defaut: 3
-    min: 0
-    max: 10
-    description: Confiance de Léna envers le protagoniste.
   mystere:
     defaut: 0
     min: 0
@@ -62,6 +297,29 @@ variables:
   indice_photo:
     defaut: false
     description: A vu la photo dans la boîte aux lettres.
+  indice_carnet:
+    defaut: false
+    description: A trouvé le carnet de chantier du père.
+
+# Temps : créneaux de la journée, vrai calendrier (jour_mois, mois, annee, jour_semaine) et époques.
+# L'élément « temps » des fiches avance (temps: 1), saute au prochain créneau (temps: matin), de
+# plusieurs jours ou mois (temps: {mois: 3}), à une date (temps: {date: 2027-12-24}) ou dans une
+# autre époque (temps: {epoque: passe}) : chaque époque garde sa propre date, les variables sont
+# partagées, donc ce qu'on fait dans le passé se lit dans le présent.
+temps:
+  creneaux: [matin, midi, soir]
+  epoques:
+    present: 2026-10-16
+    passe: 2016-10-16
+  debut: {creneau: soir, epoque: present}
+  evenements:
+    anniversaire_lena: {mois: 10, jour: 17}    # variable evenement_anniversaire_lena, vraie ce jour-là
+
+# Noms disparus depuis une version publiée : les anciennes sauvegardes reprennent leurs valeurs
+# (variables) ou leurs positions (scenes) sous les nouveaux noms, dans les deux moteurs.
+renommages:
+  variables:
+    relation_lena: lena_moi
 
 regles_editoriales:
   - Dialogues courts ; le protagoniste dit « je », pas de narrateur omniscient.

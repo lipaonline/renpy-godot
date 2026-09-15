@@ -1,0 +1,20 @@
+id: CH02_CANNES
+titre: La plage
+lieu: cannes_plage
+personnages: [moi]
+objectif_narratif:
+  - comprendre_la_carte_postale
+resume: "La plage de Cannes, hors saison : la carte postale du père venait d'ici. Coûte un créneau, plus le voyage."
+
+contenu:
+  - decor: plage_jour
+    transition: dissolve
+  - narration: "La plage de la carte postale, vide en cette saison. Il l'a envoyée d'ici, un mois après son départ."
+  - si: moi_observation >= 1
+    alors:
+      - narration: "Au dos, un détail que je n'avais jamais vu : le cachet de la poste est celui de Lyon."
+      - effets: {mystere: 1}
+  - temps: 1
+  - appel: CH02_HEURE
+
+carte: cannes

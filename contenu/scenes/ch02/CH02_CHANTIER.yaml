@@ -1,0 +1,36 @@
+id: CH02_CHANTIER
+titre: Le chantier
+lieu: chantier
+personnages: [moi, lena, karim]
+objectif_narratif:
+  - rencontrer_karim
+  - reveler_la_promesse
+resume: Le chantier de la photo. Léna y photographie à midi si la confiance est basse ; Karim, le chef de chantier, ne parle qu'à qui tient un indice.
+
+contenu:
+  - decor: chantier_jour
+    transition: dissolve
+  - si: lieu_lena == "chantier"
+    alors:
+      - montrer: lena serieuse
+        position: left
+        transition: dissolve
+      - lena: "Tu m'as suivie ? … Non. Tu as trouvé le chantier tout seul. Comme lui."
+      - moi: "C'est ici qu'il a été pris en photo."
+      - lena: "C'est ici que tout a commencé. Demande à Karim, il était là."
+      - effets: {lena_moi: 1, lena_karim: 1, mystere: 1}
+  - montrer: karim neutre
+    position: right
+    transition: dissolve
+  - si: indice_carnet or indice_photo
+    alors:
+      - karim: "Le fils du chef d'équipe. Vous avez ses yeux. Il est parti un soir de pluie, et il m'a fait promettre."
+      - moi: "Promettre quoi ?"
+      - karim: "De ne rien dire à personne. Sauf à vous, si vous veniez un jour."
+      - effets: {mystere: 1}
+    sinon:
+      - karim: "Un chantier, ça ne se visite pas. Revenez quand vous saurez ce que vous cherchez."
+  - temps: 1
+  - appel: CH02_HEURE
+
+carte: ville

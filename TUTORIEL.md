@@ -109,15 +109,66 @@ personnages:
   sam:
     nom: Sam
     couleur: "#8fe3b0"
-    age: 30                      # obligatoire ; minimum réglable par age_minimum (18 par défaut)
+    age: 30                      # facultatif ; s'il est indiqué, minimum réglable par age_minimum (18 par défaut)
     biographie: Libraire du quartier.
     images: [sam neutre]
 
+    competences:
+      cuisine: {defaut: 2, max: 5}            # variable sam_cuisine
+    relations:
+      moi: {defaut: 0, max: 10, paliers: {0: inconnu, 4: ami}}   # variable sam_moi, sur les deux fiches
+
 variables:
-  amitie_sam: {defaut: 0, min: 0, max: 10, description: Amitié de Sam.}
+  argent: {defaut: 20, min: 0, description: Ce qu'il reste en poche.}
 ```
 
-Dans les fiches, Sam parle avec `- sam: "…"`, et les effets modifient ses variables : `effets: {amitie_sam: 1}`. Un nombre s'ajoute, un booléen ou un texte remplace la valeur.
+Dans les fiches, Sam parle avec `- sam: "…"`, et les effets modifient les variables : `effets: {sam_moi: 1, argent: -5}`. Un nombre s'ajoute, un booléen ou un texte remplace la valeur. Jauges, compétences et relations des personnages s'affichent dans l'écran « Personnages » du menu de jeu, avec le palier atteint (`ami` à partir de 4). Détails : [contenu/LISEZMOI.md](contenu/LISEZMOI.md#jauges-compétences-et-relations).
+
+### Le temps : créneaux, calendrier, époques
+
+Dans la bible, un bloc `temps` donne au jeu des créneaux (matin, midi, soir), un vrai calendrier à partir d'une date, des événements annuels et, pour les voyages dans le temps, des époques qui gardent chacune leur date :
+
+```yaml
+temps:
+  creneaux: [matin, midi, soir]
+  epoques: {present: 2026-10-16, passe: 2016-10-16}
+  evenements: {anniversaire_lena: {mois: 10, jour: 17}}
+  debut: {creneau: soir, epoque: present}
+```
+
+Dans les fiches, `- temps: 1` passe au créneau suivant, `- temps: {mois: 3, creneau: matin}` fait une ellipse, `- temps: {epoque: passe}` part dans le passé (et `present` en revient, là où on l'avait laissé). Les conditions lisent `moment`, `jour_semaine`, `mois`, `jour_mois`, `annee`, `epoque` et `evenement_anniversaire_lena` ; les variables de l'histoire sont communes aux époques, ce qu'on change dans le passé se voit dans le présent. Le jeu affiche « vendredi 16 octobre 2026 · soir » en haut à droite. Détails : [contenu/LISEZMOI.md](contenu/LISEZMOI.md#temps--créneaux-jours-et-décors).
+
+### Cartes, pièces et présence des personnages
+
+Le chapitre 2 de la démo est une journée en liberté : on se réveille dans l'appartement du père (chambre, cuisine, salon, salle de bain, en icônes rondes au bas de l'écran, visibles dans chaque pièce), l'immeuble (hall, cave fermée le soir, appartement de Léna), puis la carte de la ville ; deux personnages se déplacent selon l'heure. Tout se déclare dans la bible :
+
+```yaml
+lieux:
+  cave:
+    nom: La cave
+    icone: icone_cave            # image de la pièce, affichée en icône ronde
+
+cartes:
+  maison:
+    titre: La maison
+    affichage: pieces            # icônes des pièces ; « carte » = image avec des lieux placés dessus (x, y en %)
+    lieux:
+      - lieu: salon
+        scene: CH03_SALON
+      - lieu: cave
+        scene: CH03_CAVE
+        si: heure < 2            # invisible la nuit : le lieu n'apparaît pas tant que la condition est fausse
+
+personnages:
+  sam:
+    avatar: sam avatar           # petit portrait affiché sur les lieux où il se trouve
+    presence:
+      - lieu: salon
+        si: heure == 0
+      - lieu: cave               # sinon
+```
+
+Une scène affiche la carte en se terminant par `carte: maison` au lieu de `choix` ou `suite`. Chaque scène de pièce se termine ainsi : les icônes réapparaissent dans la pièce où l'on est (mise en évidence) et le joueur choisit la suivante ; pendant la scène elle-même, elles restent visibles en plus discret. À chaque affichage, le jeu recalcule où est chaque personnage (et `verifier` fait de même sur chaque route) ; le résultat est la variable `lieu_sam`, que vos fiches peuvent tester (`si: lieu_sam == "cave"`). `provisoires` crée les cartes, icônes et avatars manquants. Le détail est dans [contenu/LISEZMOI.md](contenu/LISEZMOI.md#navigation--cartes-pièces-et-présence).
 
 ## 7. Écrire avec un scénariste ou une IA
 
@@ -168,12 +219,12 @@ $RENPY_SDK/renpy.sh . lint
 $RENPY_SDK/renpy.sh . test --overwrite-screenshots
 ```
 
-`generer` choisit quelques routes qui couvrent toutes les fins et tous les choix. Godot doit y retrouver exactement l'état final calculé en Python ; Ren'Py rejoue les mêmes routes en cliquant les choix. Les deux le font dans chaque langue, en cliquant les choix traduits. Les tests suivent donc votre histoire sans que vous ayez à les écrire.
+`generer` choisit quelques routes qui couvrent toutes les fins, tous les choix et tous les lieux des cartes. Godot doit y retrouver exactement l'état final calculé en Python ; Ren'Py rejoue les mêmes routes en cliquant les choix. Les deux le font dans chaque langue, en cliquant les choix traduits. Les tests suivent donc votre histoire sans que vous ayez à les écrire.
 
 ## 10. Partir de zéro pour votre jeu
 
 1. **Copier.** Copiez ce dépôt dans un nouveau dossier, qui sera votre projet.
-2. **Vider le contenu.** Supprimez les fiches de la démo (`contenu/scenes/ch01/`) et remplacez `contenu/bible.yaml` par la vôtre. Supprimez les médias de la démo dans `game/images/` et `game/videos/`, sauf `lena_scene_01.webm`, utilisé par le test Ren'Py `video_seule` de `game/testcases.rpy` (adaptez ce test si vous le retirez).
+2. **Vider le contenu.** Supprimez les fiches de la démo (`contenu/scenes/`) et remplacez `contenu/bible.yaml` par la vôtre. Supprimez les médias de la démo dans `game/images/` et `game/videos/`, sauf `lena_scene_01.webm`, utilisé par le test Ren'Py `video_seule` de `game/testcases.rpy` (adaptez ce test si vous le retirez).
 3. **Renommer.** Changez le nom du jeu :
    - `config/name` dans `project.godot` ;
    - `config.name`, `build.name` et `config.save_directory` dans `game/options.rpy`.

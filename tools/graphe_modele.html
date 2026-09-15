@@ -51,12 +51,14 @@ button.actif { background: var(--accent-fond); border-color: var(--accent); }
 .lien.choix { stroke: var(--accent); stroke-opacity: .7; }
 .lien.suite { stroke: var(--suite); }
 .lien.appel { stroke: var(--bleu); stroke-dasharray: 1 6; stroke-linecap: round; stroke-width: 2.4; }
+.lien.carte { stroke: var(--vert); stroke-opacity: .8; }
 .lien.jamais { stroke: var(--rouge); stroke-dasharray: 7 6; }
 .lien.survol, .lien.actif { stroke-width: 3.4; stroke-opacity: 1; }
 .lien.attenue { opacity: .08; }
 .pointe.choix { fill: var(--accent); }
 .pointe.suite { fill: var(--suite); }
 .pointe.appel { fill: var(--bleu); }
+.pointe.carte { fill: var(--vert); }
 .pointe.jamais { fill: var(--rouge); }
 
 .noeud { position: absolute; width: var(--largeur); background: var(--carte); border: 1px solid var(--bord); border-radius: 10px; box-shadow: var(--ombre); cursor: pointer; user-select: none; transition: opacity .15s, box-shadow .15s, border-color .15s; }
@@ -79,14 +81,14 @@ button.actif { background: var(--accent-fond); border-color: var(--accent); }
 .sorties { list-style: none; margin: 0; padding: var(--haut-sorties) 0 0; }
 .sortie { position: relative; height: var(--ligne); display: flex; align-items: center; gap: 8px; padding: 0 16px 0 12px; font-size: 13px; }
 .sortie .icone { width: 12px; text-align: center; color: var(--accent); flex: none; }
-.sortie.suite .icone { color: var(--suite); } .sortie.appel .icone { color: var(--bleu); }
+.sortie.suite .icone { color: var(--suite); } .sortie.appel .icone { color: var(--bleu); } .sortie.carte .icone { color: var(--vert); }
 .sortie.fin .icone, .sortie.retour .icone { color: var(--doux); }
 .sortie .libelle { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sortie.fin .libelle, .sortie.retour .libelle { color: var(--doux); font-style: italic; }
 .sortie.jamais .libelle { color: var(--rouge); text-decoration: line-through; }
 .sortie .si { font: 600 10px/14px ui-monospace, monospace; color: var(--ambre); border: 1px solid currentColor; border-radius: 4px; padding: 0 3px; flex: none; }
 .port { position: absolute; right: -6px; top: 50%; width: 10px; height: 10px; margin-top: -5px; border-radius: 50%; background: var(--carte); border: 2px solid var(--accent); }
-.sortie.suite .port { border-color: var(--suite); } .sortie.appel .port { border-color: var(--bleu); }
+.sortie.suite .port { border-color: var(--suite); } .sortie.appel .port { border-color: var(--bleu); } .sortie.carte .port { border-color: var(--vert); }
 .sortie.jamais .port { border-color: var(--rouge); }
 
 #panneau { position: fixed; top: 52px; right: 0; bottom: 0; width: min(420px, 100vw); background: var(--carte); border-left: 1px solid var(--bord); overflow-y: auto; z-index: 6; padding: 18px 20px 48px; box-shadow: -8px 0 24px rgba(0, 0, 0, .18); }
@@ -110,7 +112,7 @@ button.actif { background: var(--accent-fond); border-color: var(--accent); }
 .sorties-panneau { list-style: none; padding: 0; }
 .sorties-panneau > li { margin-bottom: 12px; }
 .sorties-panneau .icone { display: inline-block; width: 18px; color: var(--accent); }
-.sorties-panneau .icone.suite { color: var(--suite); } .sorties-panneau .icone.appel { color: var(--bleu); }
+.sorties-panneau .icone.suite { color: var(--suite); } .sorties-panneau .icone.appel { color: var(--bleu); } .sorties-panneau .icone.carte { color: var(--vert); }
 .sorties-panneau .icone.fin, .sorties-panneau .icone.retour { color: var(--doux); }
 .sorties-panneau .jamais strong { color: var(--rouge); }
 .detail { font-size: 12px; color: var(--doux); margin: 3px 0 0 18px; }
@@ -169,7 +171,7 @@ button.actif { background: var(--accent-fond); border-color: var(--accent); }
   const vue = $("vue"), plan = $("plan"), svg = $("liens"), calque = $("noeuds");
   const panneau = $("panneau"), recherche = $("recherche"), menuRoutes = $("route");
   const SVG = "http://www.w3.org/2000/svg";
-  const ICONES = {choix: "◆", suite: "→", appel: "↪", fin: "■", retour: "↩"};
+  const ICONES = {choix: "◆", suite: "→", appel: "↪", carte: "◎", fin: "■", retour: "↩"};
   const COULEUR_ETAT = {"définitive": "vert", "provisoire": "gris", "manquante": "rouge"};
 
   // --- Outils -----------------------------------------------------------------------------
@@ -227,7 +229,7 @@ button.actif { background: var(--accent-fond); border-color: var(--accent); }
   svg.setAttribute("width", D.largeur);
   svg.setAttribute("height", D.hauteur);
   const defs = svgEl("defs", {});
-  for (const type of ["choix", "suite", "appel", "jamais"]) {
+  for (const type of ["choix", "suite", "appel", "carte", "jamais"]) {
     const pointe = svgEl("marker", {id: "pointe-" + type, viewBox: "0 0 10 10", refX: 9, refY: 5,
       markerWidth: 10, markerHeight: 10, markerUnits: "userSpaceOnUse", orient: "auto"});
     pointe.append(svgEl("path", {d: "M0,1 L10,5 L0,9 z", class: "pointe " + type}));
@@ -513,6 +515,7 @@ button.actif { background: var(--accent-fond); border-color: var(--accent); }
       el("li", {}, echantillon("jamais"), "choix jamais proposé"),
       el("li", {}, echantillon("suite"), "suite"),
       el("li", {}, echantillon("appel"), "appel, puis retour"),
+      el("li", {}, echantillon("carte"), "lieu choisi sur une carte"),
       el("li", {}, el("span", {class: "icone-legende"}, "◇"), "choix sous condition"),
       el("li", {}, el("span", {class: "cadre-legende"}), "scène jamais atteinte")),
     el("p", {}, "Glisser : déplacer · Ctrl + molette ou pincer : zoom · double-clic : centrer · F : tout afficher · / : chercher · Échap : fermer"));

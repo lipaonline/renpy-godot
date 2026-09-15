@@ -53,11 +53,11 @@ repliques:
     source: "Ton père… Oui, je l'ai connu. Bien plus que tu ne le crois."
     texte: "Your father… Yes, I knew him. Far better than you think."
 
-  # CH01_SC04 — Fin de la démo
-  ch01_sc04_24a12dba:
+  # CH01_SC04 — Fin de la soirée
+  ch01_sc04_c9e521d1:
     qui: narration
-    source: "{i}Fin de la démo{/i} — relation avec Léna : [relation_lena], mystère : [mystere]."
-    texte: "{i}End of the demo{/i} — relationship with Léna: [relation_lena], mystery: [mystere]."
+    source: "{i}Fin de la soirée{/i} — relation avec Léna : [lena_moi], mystère : [mystere]."
+    texte: "{i}End of the evening{/i} — relationship with Léna: [lena_moi], mystery: [mystere]."
   ch01_sc04_e2a8df7c:
     qui: narration
     source: "Léna m'a fait confiance ce soir."
@@ -70,6 +70,10 @@ repliques:
     qui: narration
     source: "La soirée s'achève sur un silence."
     texte: "The evening ends in silence."
+  ch01_sc04_d6c3c2bf:
+    qui: narration
+    source: "Sur le palier, elle a ajouté : « Reviens demain soir. D'ici là, la ville est à toi. »"
+    texte: "On the landing, she added: “Come back tomorrow evening. Until then, the town is yours.”"
 
   # CH01_SC05 — Fin solitaire
   ch01_sc05_eb701393:
@@ -83,6 +87,204 @@ repliques:
     source: "Un souvenir remonte : l'odeur du plâtre, et la voix de mon père sur le chantier."
     texte: "A memory comes back: the smell of plaster, and my father's voice on the building site."
 
+  # CH02_CAFE — Le café de la gare
+  ch02_cafe_2062cc3c:
+    qui: lena
+    source: "Je t'attendais, en fait. Assieds-toi."
+    texte: "I was waiting for you, actually. Sit down."
+  ch02_cafe_a523bd15:
+    qui: lena
+    source: "Ton père m'a demandé de me taire. Mais il n'a jamais dit jusqu'à quand."
+    texte: "Your father asked me to keep quiet. But he never said for how long."
+  ch02_cafe_0fa951d3:
+    qui: narration
+    source: "Un café au comptoir, seul. Par la vitre, le chantier. Personne ne m'attend ici."
+    texte: "A coffee at the counter, alone. Through the window, the building site. Nobody is waiting for me here."
+
+  # CH02_CANNES — La plage
+  ch02_cannes_182d1369:
+    qui: narration
+    source: "La plage de la carte postale, vide en cette saison. Il l'a envoyée d'ici, un mois après son départ."
+    texte: "The beach from the postcard, empty at this time of year. He sent it from here, a month after he left."
+  ch02_cannes_c30d528d:
+    qui: narration
+    source: "Au dos, un détail que je n'avais jamais vu : le cachet de la poste est celui de Lyon."
+    texte: "On the back, a detail I had never noticed: the postmark is from Lyon."
+
+  # CH02_CAVE — La cave
+  ch02_cave_89604a02:
+    qui: narration
+    source: "Les outils du père sont toujours là, marqués au nom du chantier. Je sais déjà où ils l'ont mené."
+    texte: "My father's tools are still there, marked with the name of the site. I already know where they led him."
+  ch02_cave_4f361bf2:
+    qui: narration
+    source: "Dans le box du père, une caisse d'outils marquée au nom du chantier. Il y travaillait encore la veille de son départ."
+    texte: "In my father's storage box, a toolbox marked with the name of the site. He was still working there the day before he left."
+  ch02_cave_6658aed8:
+    qui: narration
+    source: "Un détail m'accroche : une date gravée sur le manche du marteau, la veille de son départ."
+    texte: "One detail catches my eye: a date carved into the hammer's handle, the day before he left."
+
+  # CH02_CHAMBRE — La chambre
+  ch02_chambre_b6af121d:
+    qui: narration
+    source: "Le lit est fait, la commode vide. Il n'a rien laissé ici, ou quelqu'un est passé avant moi."
+    texte: "The bed is made, the dresser empty. He left nothing here, or someone came before me."
+
+  # CH02_CHANTIER — Le chantier
+  ch02_chantier_89ec5556:
+    qui: lena
+    source: "Tu m'as suivie ? … Non. Tu as trouvé le chantier tout seul. Comme lui."
+    texte: "Did you follow me? … No. You found the site on your own. Like him."
+  ch02_chantier_0c666814:
+    qui: moi
+    source: "C'est ici qu'il a été pris en photo."
+    texte: "This is where the photo was taken."
+  ch02_chantier_747e4d54:
+    qui: lena
+    source: "C'est ici que tout a commencé. Demande à Karim, il était là."
+    texte: "This is where it all began. Ask Karim, he was there."
+  ch02_chantier_4edcee93:
+    qui: karim
+    source: "Le fils du chef d'équipe. Vous avez ses yeux. Il est parti un soir de pluie, et il m'a fait promettre."
+    texte: "The foreman's son. You have his eyes. He left on a rainy night, and he made me promise."
+  ch02_chantier_cab9d323:
+    qui: moi
+    source: "Promettre quoi ?"
+    texte: "Promise what?"
+  ch02_chantier_18c0b266:
+    qui: karim
+    source: "De ne rien dire à personne. Sauf à vous, si vous veniez un jour."
+    texte: "To tell no one. Except you, if you ever came."
+  ch02_chantier_7d5c5392:
+    qui: karim
+    source: "Un chantier, ça ne se visite pas. Revenez quand vous saurez ce que vous cherchez."
+    texte: "A building site is no place for visitors. Come back when you know what you're looking for."
+
+  # CH02_CUISINE — La cuisine
+  ch02_cuisine_6d7ddc56:
+    qui: narration
+    source: "La cafetière tousse encore. Par la fenêtre, la cour et, plus loin, les grues du chantier."
+    texte: "The coffee maker still coughs. Through the window, the courtyard and, further away, the cranes of the site."
+
+  # CH02_EPILOGUE — Trois mois plus tard
+  ch02_epilogue_a30f93f9:
+    qui: narration
+    source: "Trois mois ont passé. Nous sommes le [jour_mois]/[mois]/[annee], et je repasse devant l'immeuble sans plus chercher personne."
+    texte: "Three months have passed. It is [jour_mois]/[mois]/[annee], and I walk past the building without looking for anyone anymore."
+  ch02_epilogue_f794f676:
+    qui: narration
+    source: "{i}Fin de la démo.{/i}"
+    texte: "{i}End of the demo.{/i}"
+
+  # CH02_HALL — Le hall
+  ch02_hall_84eaa21d:
+    qui: narration
+    source: "La boîte aux lettres de Léna est vide. La photo, je l'ai déjà vue."
+    texte: "Léna's letterbox is empty. The photo, I've already seen."
+  ch02_hall_3804d007:
+    qui: narration
+    source: "Une vieille photo dépasse encore de la fente. Un homme devant un chantier… mon père. Cette fois, je la prends."
+    texte: "An old photo still sticks out of the slot. A man in front of a building site… my father. This time, I take it."
+
+  # CH02_HEURE — L'heure tourne
+  ch02_heure_19d14db3:
+    qui: narration
+    source: "Midi. Il me reste un endroit à voir avant ce soir."
+    texte: "Noon. One more place to see before tonight."
+  ch02_heure_21c1d694:
+    qui: narration
+    source: "Le soir tombe. Léna m'attend au troisième étage."
+    texte: "Evening falls. Léna is waiting for me on the third floor."
+
+  # CH02_LENA — Chez Léna, dans la journée
+  ch02_lena_ea31797f:
+    qui: lena
+    source: "Déjà debout ? Entre, le café est chaud."
+    texte: "Up already? Come in, the coffee is hot."
+  ch02_lena_ca161494:
+    qui: moi
+    source: "Tu connaissais bien mon père ?"
+    texte: "Did you know my father well?"
+  ch02_lena_14daaeea:
+    qui: lena
+    source: "Assez pour savoir qu'il ne serait pas parti sans raison. Cherche du côté du chantier."
+    texte: "Well enough to know he wouldn't have left without a reason. Look around the building site."
+  ch02_lena_c8ca0772:
+    qui: narration
+    source: "Je frappe. Personne. Léna est sortie ; sa porte reste close."
+    texte: "I knock. Nobody. Léna is out; her door stays shut."
+
+  # CH02_MATIN — Le lendemain
+  ch02_matin_40ac964d:
+    qui: narration
+    source: "Je me réveille dans le lit de mon père, entre les cartons. Dehors, la pluie a cessé."
+    texte: "I wake up in my father's bed, between the boxes. Outside, the rain has stopped."
+  ch02_matin_c8713892:
+    qui: moi
+    source: "Une journée. L'appartement, l'immeuble, la ville : par où je commence ?"
+    texte: "One day. The flat, the building, the town: where do I start?"
+
+  # CH02_PARIS — Les archives
+  ch02_paris_9929ea2e:
+    qui: narration
+    source: "Le registre confirme le carnet : le chantier a fermé une semaine après le départ de mon père."
+    texte: "The register confirms the notebook: the site closed a week after my father left."
+  ch02_paris_57208d17:
+    qui: narration
+    source: "Dans le registre du chantier, son nom revient chaque jour. Puis plus rien, du jour au lendemain."
+    texte: "In the site register, his name comes up every day. Then nothing, from one day to the next."
+
+  # CH02_SALLE_DE_BAIN — La salle de bain
+  ch02_salle_de_bain_b9156303:
+    qui: narration
+    source: "De l'eau froide sur le visage. Dans le miroir piqué, j'ai ses yeux, paraît-il."
+    texte: "Cold water on my face. In the spotted mirror, I have his eyes, they say."
+
+  # CH02_SALON — Le salon
+  ch02_salon_ce615f4a:
+    qui: narration
+    source: "Les cartons n'ont plus rien à me dire. Le carnet est dans ma poche."
+    texte: "The boxes have nothing left to tell me. The notebook is in my pocket."
+  ch02_salon_41be80d2:
+    qui: narration
+    source: "Sous les cartons, un carnet de chantier. Un nom revient à chaque page : Karim, chef de chantier."
+    texte: "Under the boxes, a site notebook. One name comes back on every page: Karim, site foreman."
+
+  # CH02_SOIR — Le soir, chez Léna
+  ch02_soir_e13e5124:
+    qui: narration
+    source: "Sur la table, un gâteau entamé et une seule bougie : c'est son anniversaire, et elle n'en a rien dit."
+    texte: "On the table, a half-eaten cake and a single candle: it is her birthday, and she never said a word."
+  ch02_soir_263d35c7:
+    qui: lena
+    source: "Tu es revenu. Alors, ta journée ?"
+    texte: "You came back. So, how was your day?"
+  ch02_soir_fa6e0969:
+    qui: lena
+    source: "Tu sais presque tout. Il est parti pour protéger quelqu'un sur ce chantier. Et il m'a écrit, chaque année."
+    texte: "You know almost everything. He left to protect someone on that site. And he wrote to me, every year."
+  ch02_soir_0d7c77c0:
+    qui: narration
+    source: "{i}Fin de la démo{/i} — relation avec Léna : [lena_moi], mystère : [mystere]. Léna a tenu sa promesse jusqu'au bout, et l'a rompue pour moi."
+    texte: "{i}End of the demo{/i} — relationship with Léna: [lena_moi], mystery: [mystere]. Léna kept her promise to the end, and broke it for me."
+  ch02_soir_1ffebbe7:
+    qui: lena
+    source: "Je ne peux pas encore tout te dire. Mais reste, ce soir. On a le temps."
+    texte: "I can't tell you everything yet. But stay tonight. We have time."
+  ch02_soir_44ffaf1e:
+    qui: narration
+    source: "{i}Fin de la démo{/i} — relation avec Léna : [lena_moi], mystère : [mystere]. La promesse tient encore, mais plus pour longtemps."
+    texte: "{i}End of the demo{/i} — relationship with Léna: [lena_moi], mystery: [mystere]. The promise still holds, but not for long."
+  ch02_soir_7d39f445:
+    qui: lena
+    source: "Tu n'as pas trouvé grand-chose. Reviens quand tu en sauras plus."
+    texte: "You didn't find much. Come back when you know more."
+  ch02_soir_9bec1892:
+    qui: narration
+    source: "{i}Fin de la démo{/i} — relation avec Léna : [lena_moi], mystère : [mystere]. La porte se referme, sans claquer."
+    texte: "{i}End of the demo{/i} — relationship with Léna: [lena_moi], mystery: [mystere]. The door closes, without slamming."
+
 textes:
 
   # Noms des personnages
@@ -90,6 +292,116 @@ textes:
     texte: "Me"
   - source: "Léna"
     texte: "Léna"
+  - source: "Karim"
+    texte: "Karim"
+
+  # Jauges, compétences et relations
+  - source: "Observation"
+    texte: "Observation"
+  - source: "Photographie"
+    texte: "Photography"
+  - source: "Chantier"
+    texte: "Site work"
+
+  # Paliers des jauges
+  - source: "distante"
+    texte: "distant"
+  - source: "voisine"
+    texte: "neighbour"
+  - source: "amie"
+    texte: "friend"
+  - source: "confidente"
+    texte: "confidante"
+  - source: "étrangers"
+    texte: "strangers"
+  - source: "collègues"
+    texte: "colleagues"
+  - source: "complices"
+    texte: "partners in crime"
+
+  # Temps : créneaux, jours et mois
+  - source: "matin"
+    texte: "morning"
+  - source: "midi"
+    texte: "noon"
+  - source: "soir"
+    texte: "evening"
+  - source: "lundi"
+    texte: "Monday"
+  - source: "mardi"
+    texte: "Tuesday"
+  - source: "mercredi"
+    texte: "Wednesday"
+  - source: "jeudi"
+    texte: "Thursday"
+  - source: "vendredi"
+    texte: "Friday"
+  - source: "samedi"
+    texte: "Saturday"
+  - source: "dimanche"
+    texte: "Sunday"
+  - source: "janvier"
+    texte: "January"
+  - source: "février"
+    texte: "February"
+  - source: "mars"
+    texte: "March"
+  - source: "avril"
+    texte: "April"
+  - source: "mai"
+    texte: "May"
+  - source: "juin"
+    texte: "June"
+  - source: "juillet"
+    texte: "July"
+  - source: "août"
+    texte: "August"
+  - source: "septembre"
+    texte: "September"
+  - source: "octobre"
+    texte: "October"
+  - source: "novembre"
+    texte: "November"
+  - source: "décembre"
+    texte: "December"
+
+  # Titres des cartes
+  - source: "La France"
+    texte: "France"
+  - source: "Paris"
+    texte: "Paris"
+  - source: "Cannes"
+    texte: "Cannes"
+  - source: "Lyon"
+    texte: "Lyon"
+  - source: "L'immeuble"
+    texte: "The building"
+  - source: "L'appartement de mon père"
+    texte: "My father's flat"
+
+  # Noms des lieux (cartes)
+  - source: "Les archives"
+    texte: "The archives"
+  - source: "La plage"
+    texte: "The beach"
+  - source: "Le chantier"
+    texte: "The construction site"
+  - source: "Le café de la gare"
+    texte: "The station café"
+  - source: "Le hall"
+    texte: "The lobby"
+  - source: "La cave"
+    texte: "The cellar"
+  - source: "L'appartement de Léna"
+    texte: "Léna's flat"
+  - source: "Le salon"
+    texte: "The living room"
+  - source: "La cuisine"
+    texte: "The kitchen"
+  - source: "La chambre"
+    texte: "The bedroom"
+  - source: "La salle de bain"
+    texte: "The bathroom"
 
   # CH01_SC01 — L'arrivée : choix
   - source: "Monter directement"
@@ -112,3 +424,10 @@ textes:
   # CH01_SC03B — L'interrogatoire : galerie
   - source: "Le secret de Léna"
     texte: "Léna's secret"
+
+# Traductions qui ne servent plus (texte d'origine supprimé ou trop changé) :
+# réutilisez-les ou supprimez-les.
+obsoletes:
+  - id: "ch02_ville_b0f79608"
+    source: "Le matin est clair, la rue presque vide. L'immeuble, le chantier de la photo, le café de la gare : je peux aller partout."
+    texte: "The morning is clear, the street almost empty. The building, the site from the photo, the station café: I can go anywhere."

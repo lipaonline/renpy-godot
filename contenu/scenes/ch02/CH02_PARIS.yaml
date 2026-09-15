@@ -1,0 +1,21 @@
+id: CH02_PARIS
+titre: Les archives
+lieu: paris_archives
+personnages: [moi]
+objectif_narratif:
+  - retrouver_le_registre_du_chantier
+resume: "Aux archives du bâtiment, à Paris : le registre du chantier porte le nom du père jusqu'à la veille de son départ. Coûte un créneau, plus le voyage."
+
+contenu:
+  - decor: archives_jour
+    transition: dissolve
+  - si: indice_carnet
+    alors:
+      - narration: "Le registre confirme le carnet : le chantier a fermé une semaine après le départ de mon père."
+    sinon:
+      - narration: "Dans le registre du chantier, son nom revient chaque jour. Puis plus rien, du jour au lendemain."
+      - effets: {mystere: 1}
+  - temps: 1
+  - appel: CH02_HEURE
+
+carte: paris

@@ -63,6 +63,7 @@ func _init() -> void:
 		"image": "^image\\s+([A-Za-z0-9_ ]+?)\\s*=\\s*(" + STR_RE + ")$",
 		"assign": "^(" + IDENT + ")\\s*(\\+=|-=|\\*=|=(?!=))\\s*(.+)$",
 		"movie": "^renpy\\.movie_cutscene\\s*\\(\\s*(" + STR_RE + ")\\s*\\)$",
+		"navigate": "^naviguer\\s*\\(\\s*(" + STR_RE + ")\\s*(?:,\\s*(" + STR_RE + ")\\s*)?\\)$",
 		"pause": "^pause(?:\\s+([0-9]*\\.?[0-9]+))?$",
 		"renpy_pause": "^renpy\\.pause\\s*\\(\\s*([0-9]*\\.?[0-9]+)?\\s*\\)$",
 		"choice": "^(" + STR_RE + ")\\s*(?:if\\s+(.+?))?\\s*:$",
@@ -658,9 +659,17 @@ func _compile_python(line: Dictionary) -> void:
 	if m != null:
 		_emit({"op": "pause", "seconds": _seconds(m.get_string(1)), "line": line.n})
 		return
+	m = _re.navigate.search(code)
+	if m != null:
+		# Carte de navigation (game/navigation.json) : le joueur choisit un lieu, qui saute à sa scène.
+		# Second argument facultatif : le lieu où l'on est, signalé sur la carte.
+		var here := "" if m.get_string(2) == "" else _unquote(m.get_string(2))
+		_emit({"op": "navigate", "map": _unquote(m.get_string(1)), "here": here, "line": line.n})
+		return
 	m = _re.assign.search(code)
 	if m == null:
-		_error(line.n, "Python non supporté : seules les affectations (x = …, x += …, x -= …, x *= …) et renpy.movie_cutscene(…) sont autorisées")
+		_error(line.n, "Python non supporté : seules les affectations (x = …, x += …, x -= …, x *= …), "
+			+ "renpy.movie_cutscene(…) et naviguer(…) sont autorisées")
 		return
 	var name := m.get_string(1)
 	var operator := m.get_string(2)
@@ -706,6 +715,22 @@ func _expression(source: String, line: Dictionary) -> String:
 	_checks.append({"kind": "expr", "source": source, "expr": translated.expr, "idents": translated.idents,
 		"error": translated.error, "file": _file, "line": line.n})
 	return translated.expr
+
+
+## Expression Python du sous-ensemble venue d'un fichier de données (game/navigation.json) :
+## la traduit en expression Godot après les mêmes vérifications que le script, avec les
+## variables de l'histoire. Renvoie {expr, error} (error vide si tout va bien).
+func compile_expression(source: String, names: PackedStringArray) -> Dictionary:
+	var translated := _translate(source)
+	if translated.error != "":
+		return {"expr": "", "error": "%s dans « %s »" % [translated.error, source]}
+	for ident in translated.idents:
+		if ident not in names:
+			return {"expr": "", "error": "variable inconnue « %s » dans « %s » (déclarez-la avec default)" % [ident, source]}
+	var expression := Expression.new()
+	if expression.parse(translated.expr, names) != OK:
+		return {"expr": "", "error": "expression invalide « %s » : %s" % [source, expression.get_error_text()]}
+	return {"expr": translated.expr, "error": ""}
 
 
 func _translate(source: String) -> Dictionary:

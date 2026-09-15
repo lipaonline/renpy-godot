@@ -7,12 +7,14 @@ Un petit jeu de démo écrit **une seule fois** et joué à l'identique par **Re
 | Ren'Py | Godot |
 |---|---|
 | ![La démo dans Ren'Py](docs/captures/renpy_demo.png) | ![La même scène dans Godot](docs/captures/godot_demo.png) |
+| ![Les pièces de l'immeuble dans Ren'Py](docs/captures/renpy_pieces.png) | ![La carte de la ville dans Godot](docs/captures/godot_carte.png) |
 
 ## Ce que contient le dépôt
 
-- **Un jeu de démo** : 7 scènes, 2 fins, une vidéo, une galerie débloquable, jouable en français et en anglais. Il est décrit dans [contenu/](contenu/).
-- **Une chaîne d'écriture.** Une bible (personnages, lieux, variables) et des fiches de scène en YAML deviennent un script `.rpy` commun aux deux moteurs (`tools/fiches.py`). Toutes les routes sont vérifiées avant génération : conditions, variables, routes mortes, choix jamais proposés.
-- **Un lecteur Godot** qui joue ce script avec la même interface que Ren'Py : menu principal, sauvegardes avec vignettes, historique, retour arrière, avance rapide et automatique, préférences, galerie.
+- **Un jeu de démo** : 16 scènes, 2 fins, une vidéo, une galerie débloquable et une journée en liberté (carte de la ville, pièces d'un appartement et de son immeuble, personnages qui se déplacent selon l'heure), jouable en français et en anglais. Il est décrit dans [contenu/](contenu/).
+- **Une chaîne d'écriture.** Une bible (personnages, lieux, variables, cartes) et des fiches de scène en YAML deviennent un script `.rpy` commun aux deux moteurs (`tools/fiches.py`). Toutes les routes sont vérifiées avant génération : conditions, variables, routes mortes, choix et lieux jamais proposés.
+- **Une navigation.** Une carte extérieure avec des lieux placés sur une image, et à l'intérieur une rangée d'icônes rondes des pièces en bas de l'écran ; sur chaque lieu, les avatars des personnages présents. Une pièce peut être invisible sous condition (une heure, une clé). Les deux moteurs lisent le même `game/navigation.json`.
+- **Un lecteur Godot** qui joue ce script avec la même interface que Ren'Py : menu principal, sauvegardes avec vignettes, historique, retour arrière, avance rapide et automatique, préférences, galerie, cartes.
 - **Des traductions.** Les fiches sont écrites dans une langue ; chaque traduction a son fichier (`contenu/traductions/en.yaml`), tenu à jour par `traduire`, qui signale les répliques nouvelles ou modifiées. Les deux moteurs lisent les mêmes fichiers de traduction Ren'Py (`game/tl/`), et le joueur choisit la langue dans les préférences.
 - **Des tests des deux côtés.** Les parcours sont générés depuis les fiches : Godot et Ren'Py rejouent les mêmes routes et doivent arriver à la même fin.
 

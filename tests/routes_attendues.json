@@ -5,18 +5,98 @@
       "nom": "route_01",
       "choix": [
         "Monter directement",
-        "Lui faire confiance"
+        "Lui faire confiance",
+        [
+          "La salle de bain"
+        ],
+        [
+          "La chambre"
+        ],
+        [
+          "La cuisine"
+        ],
+        [
+          "Le salon"
+        ],
+        [
+          "← L'immeuble",
+          "← Lyon",
+          "Le café de la gare"
+        ],
+        [
+          "L'immeuble",
+          "L'appartement de Léna"
+        ]
       ],
-      "fin": "ch01_sc04",
+      "fin": "ch02_epilogue",
       "etat_final": {
-        "relation_lena": 6,
-        "mystere": 0,
-        "indice_photo": false
+        "mystere": 2,
+        "indice_photo": false,
+        "indice_carnet": true,
+        "moi_observation": 0,
+        "lena_photographie": 4,
+        "lena_moi": 7,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
       },
       "choix_traduits": {
         "en": [
           "Go straight up",
-          "Trust her"
+          "Trust her",
+          [
+            "The bathroom"
+          ],
+          [
+            "The bedroom"
+          ],
+          [
+            "The kitchen"
+          ],
+          [
+            "The living room"
+          ],
+          [
+            "← The building",
+            "← Lyon",
+            "The station café"
+          ],
+          [
+            "The building",
+            "Léna's flat"
+          ]
         ]
       }
     },
@@ -24,18 +104,86 @@
       "nom": "route_02",
       "choix": [
         "Regarder la boîte aux lettres",
-        "Repartir sous la pluie"
+        "L'interroger sur la photo",
+        [
+          "← L'immeuble",
+          "L'appartement de Léna"
+        ],
+        [
+          "L'appartement de mon père",
+          "La salle de bain"
+        ],
+        [
+          "← L'immeuble",
+          "La cave"
+        ],
+        [
+          "L'appartement de Léna"
+        ]
       ],
-      "fin": "ch01_sc05",
+      "fin": "ch02_epilogue",
       "etat_final": {
-        "relation_lena": 1,
-        "mystere": 0,
-        "indice_photo": true
+        "mystere": 3,
+        "indice_photo": true,
+        "indice_carnet": false,
+        "moi_observation": 1,
+        "lena_photographie": 4,
+        "lena_moi": 4,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
       },
       "choix_traduits": {
         "en": [
           "Check the letterbox",
-          "Leave in the rain"
+          "Ask her about the photo",
+          [
+            "← The building",
+            "Léna's flat"
+          ],
+          [
+            "My father's flat",
+            "The bathroom"
+          ],
+          [
+            "← The building",
+            "The cellar"
+          ],
+          [
+            "Léna's flat"
+          ]
         ]
       }
     },
@@ -43,18 +191,837 @@
       "nom": "route_03",
       "choix": [
         "Regarder la boîte aux lettres",
-        "L'interroger sur la photo"
+        "L'interroger sur la photo",
+        [
+          "← L'immeuble",
+          "← Lyon",
+          "Le café de la gare"
+        ],
+        [
+          "L'appartement de mon père",
+          "La salle de bain"
+        ],
+        [
+          "← L'immeuble",
+          "← Lyon",
+          "Le chantier"
+        ],
+        [
+          "L'immeuble",
+          "L'appartement de Léna"
+        ]
       ],
-      "fin": "ch01_sc04",
+      "fin": "ch02_epilogue",
       "etat_final": {
-        "relation_lena": 3,
-        "mystere": 2,
-        "indice_photo": true
+        "mystere": 4,
+        "indice_photo": true,
+        "indice_carnet": false,
+        "moi_observation": 1,
+        "lena_photographie": 4,
+        "lena_moi": 4,
+        "lena_karim": 6,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
       },
       "choix_traduits": {
         "en": [
           "Check the letterbox",
-          "Ask her about the photo"
+          "Ask her about the photo",
+          [
+            "← The building",
+            "← Lyon",
+            "The station café"
+          ],
+          [
+            "My father's flat",
+            "The bathroom"
+          ],
+          [
+            "← The building",
+            "← Lyon",
+            "The construction site"
+          ],
+          [
+            "The building",
+            "Léna's flat"
+          ]
+        ]
+      }
+    },
+    {
+      "nom": "route_04",
+      "choix": [
+        "Monter directement",
+        "Lui faire confiance",
+        [
+          "← L'immeuble",
+          "La cave"
+        ],
+        [
+          "L'appartement de mon père",
+          "La salle de bain"
+        ],
+        [
+          "La chambre"
+        ],
+        [
+          "La cuisine"
+        ],
+        [
+          "Le salon"
+        ],
+        [
+          "← L'immeuble",
+          "L'appartement de Léna"
+        ]
+      ],
+      "fin": "ch02_epilogue",
+      "etat_final": {
+        "mystere": 2,
+        "indice_photo": false,
+        "indice_carnet": true,
+        "moi_observation": 0,
+        "lena_photographie": 4,
+        "lena_moi": 6,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
+      },
+      "choix_traduits": {
+        "en": [
+          "Go straight up",
+          "Trust her",
+          [
+            "← The building",
+            "The cellar"
+          ],
+          [
+            "My father's flat",
+            "The bathroom"
+          ],
+          [
+            "The bedroom"
+          ],
+          [
+            "The kitchen"
+          ],
+          [
+            "The living room"
+          ],
+          [
+            "← The building",
+            "Léna's flat"
+          ]
+        ]
+      }
+    },
+    {
+      "nom": "route_05",
+      "choix": [
+        "Regarder la boîte aux lettres",
+        "Lui faire confiance",
+        [
+          "← L'immeuble",
+          "← Lyon",
+          "Le chantier"
+        ],
+        [
+          "L'appartement de mon père",
+          "La salle de bain"
+        ],
+        [
+          "← L'immeuble",
+          "← Lyon",
+          "Le café de la gare"
+        ],
+        [
+          "L'immeuble",
+          "L'appartement de Léna"
+        ]
+      ],
+      "fin": "ch02_epilogue",
+      "etat_final": {
+        "mystere": 2,
+        "indice_photo": true,
+        "indice_carnet": false,
+        "moi_observation": 1,
+        "lena_photographie": 4,
+        "lena_moi": 6,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
+      },
+      "choix_traduits": {
+        "en": [
+          "Check the letterbox",
+          "Trust her",
+          [
+            "← The building",
+            "← Lyon",
+            "The construction site"
+          ],
+          [
+            "My father's flat",
+            "The bathroom"
+          ],
+          [
+            "← The building",
+            "← Lyon",
+            "The station café"
+          ],
+          [
+            "The building",
+            "Léna's flat"
+          ]
+        ]
+      }
+    },
+    {
+      "nom": "route_06",
+      "choix": [
+        "Monter directement",
+        "Repartir sous la pluie"
+      ],
+      "fin": "ch01_sc05",
+      "etat_final": {
+        "mystere": 0,
+        "indice_photo": false,
+        "indice_carnet": false,
+        "moi_observation": 0,
+        "lena_photographie": 4,
+        "lena_moi": 2,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 2,
+        "moment": "soir",
+        "jour": 1,
+        "jour_semaine_rang": 4,
+        "jour_semaine": "vendredi",
+        "jour_mois": 16,
+        "mois": 10,
+        "annee": 2026,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 2,
+        "temps_saut": 0,
+        "temps_cible_jour": 0,
+        "temps_cible_mois": 0,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "",
+        "lieu_karim": ""
+      },
+      "choix_traduits": {
+        "en": [
+          "Go straight up",
+          "Leave in the rain"
+        ]
+      }
+    },
+    {
+      "nom": "route_07",
+      "choix": [
+        "Monter directement",
+        "Lui faire confiance",
+        [
+          "← L'immeuble",
+          "Le hall"
+        ],
+        [
+          "← Lyon",
+          "Le café de la gare"
+        ],
+        [
+          "L'immeuble",
+          "L'appartement de Léna"
+        ]
+      ],
+      "fin": "ch02_epilogue",
+      "etat_final": {
+        "mystere": 2,
+        "indice_photo": true,
+        "indice_carnet": false,
+        "moi_observation": 1,
+        "lena_photographie": 4,
+        "lena_moi": 7,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
+      },
+      "choix_traduits": {
+        "en": [
+          "Go straight up",
+          "Trust her",
+          [
+            "← The building",
+            "The lobby"
+          ],
+          [
+            "← Lyon",
+            "The station café"
+          ],
+          [
+            "The building",
+            "Léna's flat"
+          ]
+        ]
+      }
+    },
+    {
+      "nom": "route_08",
+      "choix": [
+        "Monter directement",
+        "Lui faire confiance",
+        [
+          "← L'immeuble",
+          "← Lyon",
+          "← La France",
+          "Cannes",
+          "La plage"
+        ],
+        [
+          "← La France",
+          "Lyon",
+          "L'immeuble",
+          "L'appartement de Léna"
+        ]
+      ],
+      "fin": "ch02_epilogue",
+      "etat_final": {
+        "mystere": 0,
+        "indice_photo": false,
+        "indice_carnet": false,
+        "moi_observation": 0,
+        "lena_photographie": 4,
+        "lena_moi": 6,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
+      },
+      "choix_traduits": {
+        "en": [
+          "Go straight up",
+          "Trust her",
+          [
+            "← The building",
+            "← Lyon",
+            "← France",
+            "Cannes",
+            "The beach"
+          ],
+          [
+            "← France",
+            "Lyon",
+            "The building",
+            "Léna's flat"
+          ]
+        ]
+      }
+    },
+    {
+      "nom": "route_09",
+      "choix": [
+        "Monter directement",
+        "Lui faire confiance",
+        [
+          "← L'immeuble",
+          "← Lyon",
+          "← La France",
+          "Paris",
+          "Les archives"
+        ],
+        [
+          "← La France",
+          "Lyon",
+          "L'immeuble",
+          "L'appartement de Léna"
+        ]
+      ],
+      "fin": "ch02_epilogue",
+      "etat_final": {
+        "mystere": 1,
+        "indice_photo": false,
+        "indice_carnet": false,
+        "moi_observation": 0,
+        "lena_photographie": 4,
+        "lena_moi": 6,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
+      },
+      "choix_traduits": {
+        "en": [
+          "Go straight up",
+          "Trust her",
+          [
+            "← The building",
+            "← Lyon",
+            "← France",
+            "Paris",
+            "The archives"
+          ],
+          [
+            "← France",
+            "Lyon",
+            "The building",
+            "Léna's flat"
+          ]
+        ]
+      }
+    },
+    {
+      "nom": "route_10",
+      "choix": [
+        "Regarder la boîte aux lettres",
+        "Lui faire confiance",
+        [
+          "← L'immeuble",
+          "L'appartement de Léna"
+        ],
+        [
+          "L'appartement de mon père",
+          "La salle de bain"
+        ],
+        [
+          "← L'immeuble",
+          "L'appartement de Léna"
+        ],
+        [
+          "L'appartement de Léna"
+        ]
+      ],
+      "fin": "ch02_epilogue",
+      "etat_final": {
+        "mystere": 0,
+        "indice_photo": true,
+        "indice_carnet": false,
+        "moi_observation": 1,
+        "lena_photographie": 4,
+        "lena_moi": 6,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
+      },
+      "choix_traduits": {
+        "en": [
+          "Check the letterbox",
+          "Trust her",
+          [
+            "← The building",
+            "Léna's flat"
+          ],
+          [
+            "My father's flat",
+            "The bathroom"
+          ],
+          [
+            "← The building",
+            "Léna's flat"
+          ],
+          [
+            "Léna's flat"
+          ]
+        ]
+      }
+    },
+    {
+      "nom": "route_11",
+      "choix": [
+        "Monter directement",
+        "Lui faire confiance",
+        [
+          "← L'immeuble",
+          "L'appartement de Léna"
+        ],
+        [
+          "← Lyon",
+          "Le café de la gare"
+        ],
+        [
+          "L'immeuble",
+          "L'appartement de Léna"
+        ]
+      ],
+      "fin": "ch02_epilogue",
+      "etat_final": {
+        "mystere": 1,
+        "indice_photo": false,
+        "indice_carnet": false,
+        "moi_observation": 0,
+        "lena_photographie": 4,
+        "lena_moi": 8,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
+      },
+      "choix_traduits": {
+        "en": [
+          "Go straight up",
+          "Trust her",
+          [
+            "← The building",
+            "Léna's flat"
+          ],
+          [
+            "← Lyon",
+            "The station café"
+          ],
+          [
+            "The building",
+            "Léna's flat"
+          ]
+        ]
+      }
+    },
+    {
+      "nom": "route_12",
+      "choix": [
+        "Monter directement",
+        "Lui faire confiance",
+        [
+          "← L'immeuble",
+          "L'appartement de Léna"
+        ],
+        [
+          "← Lyon",
+          "Le chantier"
+        ],
+        [
+          "L'immeuble",
+          "L'appartement de Léna"
+        ]
+      ],
+      "fin": "ch02_epilogue",
+      "etat_final": {
+        "mystere": 0,
+        "indice_photo": false,
+        "indice_carnet": false,
+        "moi_observation": 0,
+        "lena_photographie": 4,
+        "lena_moi": 7,
+        "lena_karim": 5,
+        "karim_chantier": 5,
+        "creneau": 0,
+        "moment": "matin",
+        "jour": 94,
+        "jour_semaine_rang": 6,
+        "jour_semaine": "dimanche",
+        "jour_mois": 17,
+        "mois": 1,
+        "annee": 2027,
+        "temps_longueur_mois": 31,
+        "temps_bissextile_rang": 3,
+        "temps_saut": 0,
+        "temps_cible_jour": 17,
+        "temps_cible_mois": 1,
+        "evenement_anniversaire_lena": false,
+        "epoque": "present",
+        "epoque_present_annee": 2026,
+        "epoque_present_mois": 10,
+        "epoque_present_jour_mois": 16,
+        "epoque_present_jour": 1,
+        "epoque_present_jour_semaine_rang": 4,
+        "epoque_present_creneau": 2,
+        "epoque_present_temps_longueur_mois": 31,
+        "epoque_present_temps_bissextile_rang": 2,
+        "epoque_passe_annee": 2016,
+        "epoque_passe_mois": 10,
+        "epoque_passe_jour_mois": 16,
+        "epoque_passe_jour": 1,
+        "epoque_passe_jour_semaine_rang": 6,
+        "epoque_passe_creneau": 2,
+        "epoque_passe_temps_longueur_mois": 31,
+        "epoque_passe_temps_bissextile_rang": 0,
+        "lieu_lena": "appartement_lena",
+        "lieu_karim": "cafe"
+      },
+      "choix_traduits": {
+        "en": [
+          "Go straight up",
+          "Trust her",
+          [
+            "← The building",
+            "Léna's flat"
+          ],
+          [
+            "← Lyon",
+            "The construction site"
+          ],
+          [
+            "The building",
+            "Léna's flat"
+          ]
         ]
       }
     }

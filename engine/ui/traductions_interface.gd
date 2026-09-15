@@ -14,6 +14,7 @@ const TEXTS := {
 		"Préférences": "Preferences",
 		"Quitter": "Quit",
 		"Historique": "History",
+		"Personnages": "Characters",
 		"Sauvegarder": "Save",
 		"Menu principal": "Main Menu",
 		"Retour": "Return",
@@ -32,6 +33,10 @@ const TEXTS := {
 		"%s — vide": "%s — empty",
 		"Aucune entrée dans game/galerie.json.": "No entries in game/galerie.json.",
 		"Verrouillé": "Locked",
+		"Aucune fiche dans game/personnages.json.": "No character sheet in game/personnages.json.",
+		"Compétences": "Skills",
+		"Relations": "Relationships",
+		"Jour %d": "Day %d",
 		"Vidéo introuvable : %s": "Video not found: %s",
 		"[ image manquante : %s ]": "[ missing image: %s ]",
 		# Préférences

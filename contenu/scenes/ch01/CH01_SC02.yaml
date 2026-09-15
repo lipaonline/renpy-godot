@@ -9,7 +9,7 @@ objectif_narratif:
 resume: Léna accueille le protagoniste. S'il a vu la photo, il peut l'interroger ; sinon, lui faire confiance ou repartir.
 
 contenu:
-  - decor: appartement_soir
+  - decor: appartement_lena
     transition: dissolve
   - montrer: lena sourire
     position: right
@@ -26,7 +26,7 @@ choix:
   options:
     - id: confiance
       libelle: "Lui faire confiance"
-      effets: {relation_lena: 2}
+      effets: {lena_moi: 2}
       destination: CH01_SC03A
 
     - id: interroger
@@ -37,7 +37,7 @@ choix:
 
     - id: repartir
       libelle: "Repartir sous la pluie"
-      effets: {relation_lena: -2}
+      effets: {lena_moi: -2}
       contenu:
         - cacher: lena
           transition: dissolve

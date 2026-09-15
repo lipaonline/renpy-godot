@@ -1,6 +1,7 @@
-## Lecteur de visual novel : scène (fond, personnages, dialogues, choix, vidéos),
-## menus (principal, jeu, sauvegardes, historique, préférences, galerie), avance
-## rapide, avance automatique et retour arrière, comme dans Ren'Py.
+## Lecteur de visual novel : scène (fond, personnages, dialogues, choix, vidéos), cartes
+## de navigation (lieux et personnages présents), menus (principal, jeu, sauvegardes,
+## historique, préférences, galerie), avance rapide, avance automatique et retour arrière,
+## comme dans Ren'Py.
 ##
 ## Commandes : clic / Espace / Entrée = continuer ; molette vers le haut / Page ↑ = retour
 ## arrière ; Ctrl maintenu ou Tab = avance rapide ; A = avance automatique ; H = historique ;
@@ -11,7 +12,8 @@
 ##                   les choix affichés) et quitte à la fin
 ##   --autoplay      démarre la partie tout de suite et avance seul
 ##   --actions=a,b   joue une suite d'actions d'interface, une toutes les 1,5 s
-##                   (voir _run_action) : sert aux captures et aux tests visuels
+##                   (voir _run_action) : sert aux captures (screenshot:fichier.png) et aux
+##                   tests visuels
 ##   --langue=en     joue dans cette langue, sans changer la préférence enregistrée
 extends Control
 
@@ -21,20 +23,29 @@ const Assets = preload("res://engine/assets.gd")
 const PersistentData = preload("res://engine/persistent_data.gd")
 const SaveSlots = preload("res://engine/save_slots.gd")
 const Gallery = preload("res://engine/gallery.gd")
+const Characters = preload("res://engine/characters.gd")
+const Renames = preload("res://engine/renommages.gd")
+const Temps = preload("res://engine/temps.gd")
+const Navigation = preload("res://engine/navigation.gd")
 const Style = preload("res://engine/ui/ui_style.gd")
 const GameMenu = preload("res://engine/ui/game_menu.gd")
 const QuickMenu = preload("res://engine/ui/quick_menu.gd")
+const MapScreen = preload("res://engine/ui/map_screen.gd")
 const Langues = preload("res://engine/langues.gd")
 const InterfaceTexts = preload("res://engine/ui/traductions_interface.gd")
 
 const STORY_DIR := "res://game/story"
 const GALLERY_PATH := "res://game/galerie.json"
+const CHARACTERS_PATH := "res://game/personnages.json"
+const RENAMES_PATH := "res://game/renommages.json"
+const TEMPS_PATH := "res://game/temps.json"
+const NAVIGATION_PATH := "res://game/navigation.json"
 const XALIGN := {"left": 0.0, "center": 0.5, "right": 1.0, "truecenter": 0.5}
 const TRANSITION_TIME := 0.5
 const SKIP_DELAY := 0.05
 const AUTOPLAY_DELAY := 1.5
 const PERSISTENT_SAVE_INTERVAL := 10.0
-const BLOCKING_EVENTS := ["say", "menu", "movie", "pause", "end", "error"]
+const BLOCKING_EVENTS := ["say", "menu", "navigate", "movie", "pause", "end", "error"]
 
 var _interp: Interpreter
 var _assets: Assets
@@ -68,11 +79,14 @@ var _dialogue: Panel
 var _speaker: Label
 var _text: RichTextLabel
 var _choices: VBoxContainer
+var _map: MapScreen
 var _video: VideoStreamPlayer
 var _notice_layer: CenterContainer
 var _notice: Label
 var _skip_indicator: Label
 var _quick_menu: QuickMenu
+var _time_label: Label
+var _time_model: Dictionary = Temps.empty()
 var _game_menu: GameMenu
 var _toast: Label
 var _music: AudioStreamPlayer
@@ -96,13 +110,33 @@ func _ready() -> void:
 	var gallery := Gallery.load_file(GALLERY_PATH, story)
 	for problem in gallery.errors:
 		push_warning(problem)
+	var characters := Characters.load_file(CHARACTERS_PATH, story)
+	for problem in characters.errors:
+		push_warning(problem)
 	_story = story
 	_langues = Langues.new()
 	_langues.load_file()
 	_interp = Interpreter.new(story)
 	_interp.label_entered.connect(_persistent.mark_label)
-	_game_menu.context = {"persistent": _persistent, "gallery": gallery.entries, "assets": _assets, "history": [],
-		"languages": _langues.languages, "translate": _interp.translate_string}
+	_interp.label_entered.connect(_update_overlay)
+	var navigation := Navigation.load_file(NAVIGATION_PATH, story)
+	if not navigation.errors.is_empty():
+		_fatal("Les cartes de navigation contiennent des erreurs :\n\n" + "\n".join(navigation.errors))
+		return
+	_interp.set_navigation(navigation.data)
+	var renames := Renames.load_file(RENAMES_PATH, story)
+	for problem in renames.errors:
+		push_warning(problem)
+	_interp.set_renames(renames.data)
+	var temps := Temps.load_file(TEMPS_PATH, story)
+	for problem in temps.errors:
+		push_warning(problem)
+	_time_model = temps.data
+	_map.view = _interp.map_view
+	_map.assets = _assets
+	_game_menu.context = {"persistent": _persistent, "gallery": gallery.entries, "characters": characters.characters,
+		"store": _interp.store, "assets": _assets, "history": [], "languages": _langues.languages,
+		"translate": _interp.translate_string}
 	_apply_preferences()
 	if _waiting == "fatal":
 		return
@@ -189,6 +223,7 @@ func _start_game() -> void:
 	_quick_menu.visible = true
 	_stop_media()
 	_clear_choices()
+	_map.close()
 	_show_scene("", "")
 	_dialogue.visible = false
 	_set_skip(false)
@@ -209,6 +244,7 @@ func _show_main_menu() -> void:
 	_sound.stop()
 	_current_music = ""
 	_clear_choices()
+	_map.close()
 	_dialogue.visible = false
 	_stage.visible = false
 	_quick_menu.visible = false
@@ -262,6 +298,10 @@ func _handle(event: Dictionary) -> bool:
 			_waiting = "menu"
 			_set_skip(false)
 			_show_menu(event)
+		"navigate":
+			_waiting = "navigate"
+			_set_skip(false)
+			_show_map(event.map, event.get("here", ""))
 		"movie":
 			_waiting = "movie"
 			_play_movie(event.path)
@@ -299,6 +339,15 @@ func _on_choice(index: int) -> void:
 		_advance()
 
 
+## Lieu choisi sur la carte : saute à sa scène.
+func _on_map_choice(label: String) -> void:
+	if _waiting != "navigate" or _game_menu.visible:
+		return
+	if _interp.navigate_to(label):
+		_map.close()
+		_advance()
+
+
 func _rollback() -> void:
 	if not _in_game or _game_menu.visible or _interp == null or not _interp.can_rollback():
 		return
@@ -306,6 +355,7 @@ func _rollback() -> void:
 	_interp.rollback()
 	_stop_media()
 	_clear_choices()
+	_map.close()
 	_rebuild_stage(_interp.stage)
 	_advance()
 
@@ -448,6 +498,7 @@ func _hide_character(tag: String, transition: String) -> void:
 
 ## Redessine la scène après un retour arrière ou un chargement.
 func _rebuild_stage(stage: Dictionary) -> void:
+	_update_overlay(_interp.current_label())
 	_show_scene(stage.scene, "")
 	for tag in stage.shown:
 		_show_character(tag, stage.shown[tag].image, stage.shown[tag].at, "")
@@ -460,6 +511,7 @@ func _rebuild_stage(stage: Dictionary) -> void:
 
 
 func _show_say(event: Dictionary) -> void:
+	_update_time()
 	_last_say = event
 	_current_seen = _persistent.is_line_seen(event.id)
 	_persistent.mark_line(event.id)
@@ -498,6 +550,39 @@ func _clear_choices() -> void:
 	for child in _choices.get_children():
 		child.visible = false
 		child.queue_free()
+
+
+## Carte de navigation (game/navigation.json) : comme un « call screen » de Ren'Py, sans
+## boîte de dialogue ; le menu rapide reste disponible. here : lieu où l'on est, ou vide.
+func _show_map(map_id: String, here: String) -> void:
+	if _time_label != null:
+		_time_label.visible = false
+	_dialogue.visible = false
+	_clear_choices()
+	_map.open(map_id, here)
+
+
+## Dans une pièce d'un bâtiment (carte « pieces »), la rangée des pièces reste affichée pendant
+## la scène, comme l'écran permanent de Ren'Py ; ailleurs, elle disparaît.
+## Texte du temps (« Jour 2 · matin »), caché sur les cartes et sans bloc « temps » dans la bible.
+func _update_time() -> void:
+	if _interp == null or _time_label == null:
+		return
+	var text := Temps.text(_time_model, _interp.store, _interp.translate_string)
+	_time_label.text = text
+	_time_label.visible = _in_game and text != "" and _waiting != "navigate"
+
+
+func _update_overlay(label_name: String) -> void:
+	_update_time()
+	if _interp == null or _waiting == "navigate":
+		return
+	var where := _interp.overlay_for_label(label_name)
+	if where.is_empty():
+		if _map.overlay:
+			_map.close()
+	else:
+		_map.show_overlay(where.map, where.lieu)
 
 
 func _kill_text_tween() -> void:
@@ -602,6 +687,7 @@ func _open_game_menu(target: String) -> void:
 	_video.paused = true
 	_quick_menu.visible = false
 	_game_menu.context.history = _interp.history
+	_game_menu.context.store = _interp.store
 	_game_menu.show_game_menu(target)
 	_persistent.save_data()
 
@@ -714,14 +800,16 @@ func _set_language(code: String) -> void:
 	_redisplay()
 
 
-## Réaffiche la réplique ou le menu en cours dans la nouvelle langue.
+## Réaffiche la réplique, le menu ou la carte en cours dans la nouvelle langue.
 func _redisplay() -> void:
-	if not _in_game or _waiting not in ["say", "menu"]:
+	if not _in_game or _waiting not in ["say", "menu", "navigate"]:
 		return
 	var event := _interp.current_event()
 	if event.is_empty():
 		return
-	if _waiting == "menu":
+	if _waiting == "navigate":
+		_map.refresh()
+	elif _waiting == "menu":
 		_show_menu(event)
 	else:
 		var seen := _current_seen
@@ -732,7 +820,7 @@ func _redisplay() -> void:
 # --- Sauvegardes ------------------------------------------------------------------------
 
 func _can_save() -> bool:
-	return _in_game and _waiting in ["say", "menu", "pause", "movie"]
+	return _in_game and _waiting in ["say", "menu", "navigate", "pause", "movie"]
 
 
 func _take_screenshot() -> void:
@@ -784,6 +872,7 @@ func _load_from(slot: String) -> void:
 	_quick_menu.visible = true
 	_stop_media()
 	_clear_choices()
+	_map.close()
 	_set_skip(false)
 	_set_auto(false)
 	_rebuild_stage(_interp.stage)
@@ -819,7 +908,7 @@ func _schedule_autoplay() -> void:
 
 func _autoplay_action() -> void:
 	match _waiting:
-		"menu":
+		"menu", "navigate":
 			_press_choice(_autoplay_choices.pop_front() if not _autoplay_choices.is_empty() else 0)
 		"say":
 			_kill_text_tween()
@@ -845,9 +934,9 @@ func _run_next_action() -> void:
 	_schedule_action()
 
 
-## Actions : start, advance, choose:RANG, rollback, skip, auto, menu:PAGE, page:PAGE,
-## back, save:EMPLACEMENT, load:EMPLACEMENT, quicksave, quickload, view:N (galerie),
-## pref:CLÉ=VALEUR, mainmenu, wait, quit.
+## Actions : start, advance, choose:RANG (choix d'un menu ou lieu d'une carte), rollback,
+## skip, auto, menu:PAGE, page:PAGE, back, save:EMPLACEMENT, load:EMPLACEMENT, quicksave,
+## quickload, view:N (galerie), pref:CLÉ=VALEUR, screenshot:FICHIER.png, mainmenu, wait, quit.
 func _run_action(action: String) -> void:
 	var key := action.get_slice(":", 0)
 	var argument := action.substr(key.length() + 1)
@@ -860,6 +949,10 @@ func _run_action(action: String) -> void:
 			_continue()
 		"choose":
 			_press_choice(argument.to_int())
+		"screenshot":
+			var texture := get_viewport().get_texture()
+			if texture != null:
+				texture.get_image().save_png(argument)
 		"rollback":
 			_rollback()
 		"skip":
@@ -885,6 +978,8 @@ func _run_action(action: String) -> void:
 			_quickload()
 		"view":
 			_game_menu.view_gallery_entry(argument.to_int())
+		"character":
+			_game_menu.select_character(argument)
 		"pref":
 			_persistent.set_preference(argument.get_slice("=", 0), str_to_var(argument.get_slice("=", 1)))
 			_apply_preferences()
@@ -899,6 +994,9 @@ func _run_action(action: String) -> void:
 
 
 func _press_choice(rank: int) -> void:
+	if _map.visible:
+		_map.press(rank)
+		return
 	var buttons: Array = _choices.get_children().filter(func(node: Node) -> bool: return not node.is_queued_for_deletion())
 	if buttons.is_empty():
 		return
@@ -916,6 +1014,8 @@ func _fatal(message: String) -> void:
 	_dialogue.visible = false
 	_quick_menu.visible = false
 	_clear_choices()
+	if _map != null:
+		_map.close()
 	_notice.add_theme_color_override("font_color", Color(1, 0.6, 0.55))
 	_show_notice(message)
 
@@ -989,6 +1089,11 @@ func _build_ui() -> void:
 	_choices.grow_vertical = GROW_DIRECTION_BOTH
 	_stage.add_child(_choices)
 
+	_map = MapScreen.new()
+	_map.chosen.connect(_on_map_choice)
+	_map.cost_paid.connect(func(cost: Dictionary) -> void: _interp.apply_costs([cost]))
+	_stage.add_child(_map)
+
 	_video = VideoStreamPlayer.new()
 	_video.expand = true
 	_video.visible = false
@@ -1012,6 +1117,21 @@ func _build_ui() -> void:
 	_skip_indicator.visible = false
 	_stage.add_child(_skip_indicator)
 
+	# Temps (jour et créneau) en haut à droite, comme l'écran temps_permanent de Ren'Py.
+	_time_label = Style.label("", 26, Style.TEXT)
+	_time_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_time_label.add_theme_constant_override("outline_size", 4)
+	_time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_time_label.anchor_left = 1.0
+	_time_label.anchor_right = 1.0
+	_time_label.offset_left = -900
+	_time_label.offset_right = -28
+	_time_label.offset_top = 18
+	_time_label.offset_bottom = 60
+	_time_label.modulate.a = 0.85
+	_time_label.mouse_filter = MOUSE_FILTER_IGNORE
+	_time_label.visible = false
+	_stage.add_child(_time_label)
 	_quick_menu = QuickMenu.new()
 	_quick_menu.action.connect(_on_quick_action)
 	_quick_menu.set_anchors_and_offsets_preset(PRESET_CENTER_BOTTOM)

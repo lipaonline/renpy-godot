@@ -1,0 +1,21 @@
+id: CH02_SALON
+titre: Le salon
+lieu: salon
+personnages: [moi]
+objectif_narratif:
+  - trouver_le_carnet_de_chantier
+resume: "Fouille des cartons du salon : un carnet de chantier où revient le nom de Karim. Coûte une heure."
+
+contenu:
+  - decor: salon_matin
+    transition: dissolve
+  - si: indice_carnet
+    alors:
+      - narration: "Les cartons n'ont plus rien à me dire. Le carnet est dans ma poche."
+    sinon:
+      - narration: "Sous les cartons, un carnet de chantier. Un nom revient à chaque page : Karim, chef de chantier."
+      - effets: {indice_carnet: true, mystere: 1}
+  - temps: 1
+  - appel: CH02_HEURE
+
+carte: appartement

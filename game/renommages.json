@@ -1,0 +1,10 @@
+{
+  "_genere_par": "Fichier généré par tools/fiches.py depuis contenu/ : ne pas modifier à la main.",
+  "variables": [
+    {
+      "ancien": "relation_lena",
+      "nouveau": "lena_moi"
+    }
+  ],
+  "scenes": []
+}

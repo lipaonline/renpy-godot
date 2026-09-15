@@ -1,0 +1,15 @@
+id: CH02_HEURE
+titre: L'heure tourne
+personnages: []
+resume: "Interlude appelé à la fin de chaque visite : annonce le moment de la journée (midi, puis le soir)."
+
+contenu:
+  - si: moment == "midi"
+    alors:
+      - narration: "Midi. Il me reste un endroit à voir avant ce soir."
+    sinon_si:
+      - si: moment == "soir"
+        alors:
+          - narration: "Le soir tombe. Léna m'attend au troisième étage."
+
+retour: true

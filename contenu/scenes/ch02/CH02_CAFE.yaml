@@ -1,0 +1,25 @@
+id: CH02_CAFE
+titre: Le café de la gare
+lieu: cafe
+personnages: [moi, lena]
+objectif_narratif:
+  - recompenser_la_confiance
+resume: Le café où Léna déjeune à midi quand elle fait confiance au protagoniste ; sinon, un café seul.
+
+contenu:
+  - decor: cafe_jour
+    transition: dissolve
+  - si: lieu_lena == "cafe"
+    alors:
+      - montrer: lena rougit
+        position: right
+        transition: dissolve
+      - lena: "Je t'attendais, en fait. Assieds-toi."
+      - lena: "Ton père m'a demandé de me taire. Mais il n'a jamais dit jusqu'à quand."
+      - effets: {lena_moi: 1, mystere: 1}
+    sinon:
+      - narration: "Un café au comptoir, seul. Par la vitre, le chantier. Personne ne m'attend ici."
+  - temps: 1
+  - appel: CH02_HEURE
+
+carte: ville

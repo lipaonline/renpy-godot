@@ -1,0 +1,37 @@
+{
+  "_genere_par": "Fichier généré par tools/fiches.py depuis contenu/ : ne pas modifier à la main.",
+  "creneaux": [
+    "matin",
+    "midi",
+    "soir"
+  ],
+  "jours": true,
+  "semaine": [
+    "lundi",
+    "mardi",
+    "mercredi",
+    "jeudi",
+    "vendredi",
+    "samedi",
+    "dimanche"
+  ],
+  "date": true,
+  "mois": [
+    "janvier",
+    "février",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "août",
+    "septembre",
+    "octobre",
+    "novembre",
+    "décembre"
+  ],
+  "epoques": [
+    "present",
+    "passe"
+  ]
+}

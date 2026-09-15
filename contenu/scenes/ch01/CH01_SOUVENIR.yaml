@@ -1,9 +1,11 @@
 id: CH01_SOUVENIR
 titre: Souvenir du père
 personnages: []
-resume: Flash d'enfance sur le chantier du père. Scène appelée, réutilisable depuis plusieurs routes.
+resume: Flash d'enfance sur le chantier du père, dix ans plus tôt. Scène appelée, réutilisable depuis plusieurs routes.
 
 contenu:
+  - temps: {epoque: passe}
   - narration: "Un souvenir remonte : l'odeur du plâtre, et la voix de mon père sur le chantier."
+  - temps: {epoque: present}
 
 retour: true

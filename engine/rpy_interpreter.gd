@@ -2,8 +2,11 @@
 ##
 ## L'interpréteur ne dessine rien : next() renvoie l'événement suivant et le
 ## lecteur décide comment l'afficher. Événements :
-##   bloquants     say, menu, movie, pause, end, error
+##   bloquants     say, menu, navigate, movie, pause, end, error
 ##   non bloquants scene, show, hide, audio, with
+##
+## navigate : une carte (engine/navigation.gd) attend un lieu ; map_view() décrit la carte à
+## afficher et navigate_to() saute à la scène du lieu choisi.
 ##
 ## Il tient aussi l'historique des répliques et un point de retour arrière par
 ## interaction (réplique, menu, vidéo, pause), comme Ren'Py.
@@ -28,10 +31,15 @@ var coverage: Dictionary = {}
 ## Traduction en cours (rpy_parser.finish_translation), vide pour la langue des fiches :
 ## {lines: {id: réplique traduite}, strings: {texte: traduction}}.
 var translation: Dictionary = {}
+## Cartes de navigation et règles de présence (engine/navigation.gd, champ « data »).
+var navigation: Dictionary = {"cartes": {}, "personnages": {}}
 
 var _names: PackedStringArray
 var _expressions: Dictionary = {}
 var _menu = null
+## Carte affichée, en attente d'un lieu (vide sinon), et lieu où l'on est (« vous êtes ici »).
+var _navigate := ""
+var _navigate_here := ""
 var _resume_pc := -1
 var _ended := false
 var _fatal := ""
@@ -52,6 +60,7 @@ func start(label := "start") -> void:
 	_fatal = ""
 	_ended = false
 	_menu = null
+	_navigate = ""
 	_resume_pc = -1
 	call_stack.clear()
 	history.clear()
@@ -77,6 +86,8 @@ func next() -> Dictionary:
 		return {"type": "end"}
 	if _menu != null:
 		return _menu_event(_menu)
+	if _navigate != "":
+		return _navigate_event()
 	var program: Array = story.program
 	var steps := 0
 	while pc < program.size() and _fatal == "":
@@ -114,6 +125,237 @@ func choose(index: int) -> bool:
 	return true
 
 
+# --- Navigation ------------------------------------------------------------------------
+
+func set_navigation(data: Dictionary) -> void:
+	navigation = data
+
+
+## Renommages (game/renommages.json) appliqués aux anciennes sauvegardes : variables et labels.
+var renames: Dictionary = {"variables": [], "scenes": []}
+
+
+func set_renames(data: Dictionary) -> void:
+	renames = data
+
+
+## Carte en attente : {type, map, here} (here : lieu où l'on est, ou vide).
+func _navigate_event() -> Dictionary:
+	return {"type": "navigate", "map": _navigate, "here": _navigate_here}
+
+
+## Saute à la scène d'un lieu accessible depuis la carte en attente.
+func navigate_to(label: String) -> bool:
+	if _navigate == "" or not story.labels.has(label):
+		return false
+	# Les déplacements ont déjà été payés au clic : les conditions s'évaluent sur l'état courant.
+	for target in map_targets(_navigate, false):
+		if target.label == label:
+			_navigate = ""
+			pc = story.labels[label]
+			return true
+	return false
+
+
+## Carte à afficher : titre, affichage (carte ou pieces), image, sortie vers la carte parente,
+## fil d'Ariane (cartes parentes, de la racine à la parente directe), lieux visibles avec les
+## personnages présents (un lieu qui ouvre une sous-carte montre ceux de toutes ses pièces) et
+## raccourcis (lieux proposés partout, sauf sur leur propre carte). Textes traduits.
+## {id, titre, affichage, image, parent, exit_text, chemin: [{id, titre}],
+##  lieux: [{lieu, nom, icone, x, y, label, carte, temps, presents: [{id, nom, couleur, avatar}]}], raccourcis: [même forme]}
+func map_view(map_id: String) -> Dictionary:
+	var carte: Dictionary = navigation.cartes.get(map_id, {})
+	if carte.is_empty():
+		return {}
+	var view := {"id": map_id, "titre": _interpolate(translate_string(carte.titre)), "affichage": carte.get("affichage", "carte"),
+		"image": carte.image, "parent": carte.parent, "exit_text": "", "chemin": [], "lieux": [], "raccourcis": []}
+	if carte.parent != "" and navigation.cartes.has(carte.parent):
+		view.exit_text = "← " + _interpolate(translate_string(navigation.cartes[carte.parent].titre))
+	var seen := {map_id: true}
+	var parent: String = carte.parent
+	while parent != "" and navigation.cartes.has(parent) and not seen.has(parent):
+		seen[parent] = true
+		view.chemin.push_front({"id": parent, "titre": _interpolate(translate_string(navigation.cartes[parent].titre))})
+		parent = navigation.cartes[parent].parent
+	var here: Array = []
+	for entry in carte.lieux:
+		here.append(entry.lieu)
+		if entry.expr == "" or _truthy(_eval(entry.expr)):
+			view.lieux.append(_place_view(entry))
+	for entry in navigation.get("raccourcis", []):
+		if not here.has(entry.lieu) and (entry.expr == "" or _truthy(_eval(entry.expr))):
+			view.raccourcis.append(_place_view(entry))
+	return view
+
+
+func _place_view(entry: Dictionary) -> Dictionary:
+	var covered: Array = [entry.lieu]
+	if entry.carte != "":
+		covered.append_array(_map_places(entry.carte, {}))
+	return {"lieu": entry.lieu, "nom": _interpolate(translate_string(entry.nom)), "icone": entry.get("icone", ""),
+		"x": entry.x, "y": entry.y, "label": entry.label, "carte": entry.carte, "temps": entry.get("temps", {}),
+		"presents": _present_characters(covered)}
+
+
+## Paie des déplacements (entrées « temps » des cartes : {creneaux: n} ou {jours: n}) en exécutant
+## tout de suite les labels du temps du script, comme Ren'Py au clic sur le lieu.
+func apply_costs(costs: Array) -> void:
+	for cost in costs:
+		if typeof(cost) != TYPE_DICTIONARY:
+			continue
+		if int(cost.get("jours", 0)) > 0:
+			store["temps_saut"] = int(cost.jours)
+			_run_label_now("temps_sauter_jours")
+		for _i in int(cost.get("creneaux", 0)):
+			_run_label_now("temps_avancer")
+
+
+## Exécute un label sans interaction (labels temps_*) et revient où l'on était.
+func _run_label_now(label: String) -> void:
+	if not story.labels.has(label) or _fatal != "":
+		return
+	var saved_pc := pc
+	var base := call_stack.size()
+	call_stack.append(saved_pc)
+	pc = story.labels[label]
+	var steps := 0
+	while call_stack.size() > base and _fatal == "" and pc < story.program.size():
+		steps += 1
+		if steps > MAX_STEPS:
+			_fail("boucle infinie dans le label « %s »" % label)
+			break
+		var instruction: Dictionary = story.program[pc]
+		pc += 1
+		_where = "%s:%d" % [instruction.file, instruction.line]
+		if not _execute(instruction, pc - 1).is_empty():
+			_fail("le label « %s » ne doit pas interagir (coût de déplacement)" % label)
+			break
+	pc = saved_pc
+
+
+## Scènes accessibles depuis une carte : lieux visibles de la carte, puis les raccourcis, puis
+## ceux des sous-cartes et des cartes parentes. Avec with_costs, les conditions d'une sous-carte
+## sont évaluées après le coût du déplacement qui y mène (comme au clic) ; sans, sur l'état
+## courant (déplacements déjà payés). [{label, lieu, carte, rang, costs}]
+func map_targets(map_id: String, with_costs := true) -> Array:
+	# Seul le store bouge quand on paie un déplacement : on le remet tel quel (restore() effacerait
+	# les points de retour arrière).
+	var base_store := store.duplicate(true)
+	var queue: Array = [[map_id, []]]
+	var seen := {map_id: true}
+	var reached := {}
+	var targets: Array = []
+	var first := true
+	while not queue.is_empty():
+		var item: Array = queue.pop_front()
+		var current: String = item[0]
+		var costs: Array = item[1]
+		var carte: Dictionary = navigation.cartes.get(current, {})
+		if carte.is_empty():
+			continue
+		if with_costs:
+			store = base_store.duplicate(true)
+			apply_costs(costs)
+		for i in carte.lieux.size():
+			_visit_target(carte.lieux[i], current, i, costs, queue, seen, reached, targets)
+		if first:
+			first = false
+			var here: Array = carte.lieux.map(func(entry: Dictionary) -> String: return entry.lieu)
+			for entry in navigation.get("raccourcis", []):
+				if here.has(entry.lieu):
+					continue
+				var origin: String = entry.get("carte_origine", "")
+				var rank: int = navigation.cartes.get(origin, {"lieux": []}).lieux.find(entry)
+				_visit_target(entry, origin, rank, [], queue, seen, reached, targets)
+		if carte.parent != "" and not seen.has(carte.parent):
+			seen[carte.parent] = true
+			queue.append([carte.parent, costs])
+	if with_costs:
+		store = base_store
+	return targets
+
+
+func _visit_target(entry: Dictionary, current: String, rank: int, costs: Array, queue: Array, seen: Dictionary, reached: Dictionary, targets: Array) -> void:
+	if entry.expr != "" and not _truthy(_eval(entry.expr)):
+		return
+	var next_costs: Array = costs.duplicate()
+	if not entry.get("temps", {}).is_empty():
+		next_costs.append(entry.temps)
+	if entry.label != "":
+		var key := "%s:%d" % [current, rank]
+		if not reached.has(key):
+			reached[key] = true
+			targets.append({"label": entry.label, "lieu": entry.lieu, "carte": current, "rang": rank, "costs": next_costs})
+	elif entry.carte != "" and not seen.has(entry.carte):
+		seen[entry.carte] = true
+		queue.append([entry.carte, next_costs])
+
+
+## Rangée des pièces à garder affichée pendant une scène : {map, lieu} si le lieu de la scène
+## (label) appartient à une carte « pieces », sinon vide.
+func overlay_for_label(label: String) -> Dictionary:
+	var lieu: String = navigation.get("scenes", {}).get(label, "")
+	if lieu == "":
+		return {}
+	for map_id in navigation.cartes:
+		var carte: Dictionary = navigation.cartes[map_id]
+		if carte.get("affichage", "carte") != "pieces":
+			continue
+		for entry in carte.lieux:
+			if entry.lieu == lieu:
+				return {"map": map_id, "lieu": lieu}
+	return {}
+
+
+## Lieu d'un personnage d'après ses règles « presence » : la première règle vraie, sinon aucun.
+func _character_place(character: Dictionary) -> String:
+	for rule in character.presence:
+		if rule.expr == "" or _truthy(_eval(rule.expr)):
+			return rule.lieu
+		if _fatal != "":
+			break
+	return ""
+
+
+## Lieu de chaque personnage rangé dans sa variable (lieu_<personnage>), comme naviguer()
+## côté Ren'Py, pour que les fiches puissent le tester.
+func _apply_presence() -> void:
+	for pid in navigation.personnages:
+		var character: Dictionary = navigation.personnages[pid]
+		if not store.has(character.variable):
+			_fail("variable de présence « %s » absente du script" % character.variable)
+			return
+		var lieu := _character_place(character)
+		if _fatal != "":
+			return
+		store[character.variable] = lieu
+
+
+## Identifiants des lieux d'une carte et de ses sous-cartes.
+func _map_places(map_id: String, seen: Dictionary) -> Array:
+	var places: Array = []
+	if seen.has(map_id) or not navigation.cartes.has(map_id):
+		return places
+	seen[map_id] = true
+	for entry in navigation.cartes[map_id].lieux:
+		places.append(entry.lieu)
+		if entry.carte != "":
+			places.append_array(_map_places(entry.carte, seen))
+	return places
+
+
+## Personnages présents sur des lieux, d'après leurs règles évaluées maintenant (la rangée des
+## pièces s'affiche aussi pendant les scènes, avant tout naviguer()).
+func _present_characters(places: Array) -> Array:
+	var result: Array = []
+	for pid in navigation.personnages:
+		var character: Dictionary = navigation.personnages[pid]
+		if _character_place(character) in places:
+			result.append({"id": pid, "nom": _interpolate(translate_string(character.nom)), "couleur": character.couleur,
+				"avatar": character.get("avatar", "")})
+	return result
+
+
 # --- Retour arrière --------------------------------------------------------------------
 
 func can_rollback() -> bool:
@@ -137,6 +379,7 @@ func rollback() -> bool:
 	_history_before = _history_total
 	pc = checkpoint.resume
 	_menu = null
+	_navigate = ""
 	_ended = false
 	_fatal = ""
 	return true
@@ -169,7 +412,14 @@ func set_state(state: Dictionary) -> bool:
 		if target < 0:
 			return false
 		targets.append(target)
-	var saved: Dictionary = state.get("store", {})
+	var saved: Dictionary = state.get("store", {}).duplicate()
+	# Variables renommées depuis la sauvegarde : l'ancienne valeur passe sous le nouveau nom
+	# (plusieurs passes : les chaînes a → b, b → c passent quel que soit l'ordre déclaré).
+	var variable_renames: Array = renames.get("variables", [])
+	for _pass in variable_renames.size():
+		for rename in variable_renames:
+			if saved.has(rename.ancien) and not saved.has(rename.nouveau):
+				saved[rename.nouveau] = saved[rename.ancien]
 	_fatal = ""
 	store.clear()
 	for name in _names:
@@ -186,6 +436,7 @@ func set_state(state: Dictionary) -> bool:
 	_checkpoints.clear()
 	pc = resume
 	_menu = null
+	_navigate = ""
 	_ended = false
 	return _fatal == ""
 
@@ -193,7 +444,8 @@ func set_state(state: Dictionary) -> bool:
 ## Copie complète de l'état en mémoire, utilisée par l'explorateur de routes.
 func snapshot() -> Dictionary:
 	return {"pc": pc, "store": store.duplicate(true), "call_stack": call_stack.duplicate(),
-		"stage": stage.duplicate(true), "menu": _menu, "resume": _resume_pc, "ended": _ended}
+		"stage": stage.duplicate(true), "menu": _menu, "navigate": _navigate, "navigate_here": _navigate_here,
+		"resume": _resume_pc, "ended": _ended}
 
 
 func restore(snap: Dictionary) -> void:
@@ -202,6 +454,8 @@ func restore(snap: Dictionary) -> void:
 	call_stack = snap.call_stack.duplicate()
 	stage = snap.stage.duplicate(true)
 	_menu = snap.menu
+	_navigate = snap.get("navigate", "")
+	_navigate_here = snap.get("navigate_here", "")
 	_resume_pc = snap.resume
 	_ended = snap.ended
 	_fatal = ""
@@ -219,11 +473,13 @@ func translate_string(text: String) -> String:
 	return translation.get("strings", {}).get(text, text)
 
 
-## L'interaction en cours recalculée (après un changement de langue) : la réplique ou le
-## menu en attente, dont la ligne d'historique est mise à jour. Vide sinon.
+## L'interaction en cours recalculée (après un changement de langue) : la réplique, le menu
+## ou la carte en attente ; la ligne d'historique d'une réplique est mise à jour. Vide sinon.
 func current_event() -> Dictionary:
 	if _fatal != "" or _ended or _resume_pc < 0:
 		return {}
+	if _navigate != "":
+		return _navigate_event()
 	if _menu != null:
 		var event := _menu_event(_menu)
 		if event.prompt != null:
@@ -272,6 +528,22 @@ func _execute(instruction: Dictionary, index: int) -> Dictionary:
 			_resume_pc = index
 			_interaction(event.prompt)
 			return event
+		"navigate":
+			var map_id: String = instruction.map
+			if not navigation.cartes.has(map_id):
+				_fail("carte inconnue « %s » (game/navigation.json)" % map_id)
+				return {}
+			_apply_presence()
+			if _fatal != "":
+				return {}
+			if map_targets(map_id).is_empty():
+				# Aucun lieu accessible : comme un menu sans choix, on continue.
+				return {}
+			_navigate = map_id
+			_navigate_here = instruction.get("here", "")
+			_resume_pc = index
+			_interaction(null)
+			return _navigate_event()
 		"movie":
 			_resume_pc = index
 			_interaction(null)
@@ -433,9 +705,18 @@ func _to_ref(index: int) -> Array:
 
 
 func _from_ref(ref: Variant) -> int:
-	if typeof(ref) != TYPE_ARRAY or ref.size() != 2 or not story.labels.has(ref[0]):
+	if typeof(ref) != TYPE_ARRAY or ref.size() != 2:
 		return -1
-	var target: int = story.labels[ref[0]] + int(ref[1])
+	var label: String = str(ref[0])
+	# Label renommé depuis la sauvegarde (plusieurs passes : chaînes dans n'importe quel ordre).
+	var label_renames: Array = renames.get("scenes", [])
+	for _pass in label_renames.size():
+		for rename in label_renames:
+			if label == rename.ancien:
+				label = rename.nouveau
+	if not story.labels.has(label):
+		return -1
+	var target: int = story.labels[label] + int(ref[1])
 	return target if target < story.program.size() else -1
 
 

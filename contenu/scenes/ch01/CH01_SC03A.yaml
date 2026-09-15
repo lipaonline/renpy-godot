@@ -7,7 +7,7 @@ objectif_narratif:
   - rapprochement_avec_lena
 resume: Touchée par sa confiance, Léna se confie (scène animée).
 conditions:
-  - relation_lena >= 4
+  - lena_moi >= 4
 
 contenu:
   - montrer: lena rougit

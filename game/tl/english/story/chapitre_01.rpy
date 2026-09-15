@@ -54,12 +54,12 @@ translate english ch01_sc03b_e5b495de:
     # lena "Ton père… Oui, je l'ai connu. Bien plus que tu ne le crois."
     lena "Your father… Yes, I knew him. Far better than you think."
 
-# CH01_SC04 — Fin de la démo
+# CH01_SC04 — Fin de la soirée
 
-translate english ch01_sc04_24a12dba:
+translate english ch01_sc04_c9e521d1:
 
-    # "{i}Fin de la démo{/i} — relation avec Léna : [relation_lena], mystère : [mystere]."
-    "{i}End of the demo{/i} — relationship with Léna: [relation_lena], mystery: [mystere]."
+    # "{i}Fin de la soirée{/i} — relation avec Léna : [lena_moi], mystère : [mystere]."
+    "{i}End of the evening{/i} — relationship with Léna: [lena_moi], mystery: [mystere]."
 
 translate english ch01_sc04_e2a8df7c:
 
@@ -75,6 +75,11 @@ translate english ch01_sc04_187203a5:
 
     # "La soirée s'achève sur un silence."
     "The evening ends in silence."
+
+translate english ch01_sc04_d6c3c2bf:
+
+    # "Sur le palier, elle a ajouté : « Reviens demain soir. D'ici là, la ville est à toi. »"
+    "On the landing, she added: “Come back tomorrow evening. Until then, the town is yours.”"
 
 # CH01_SC05 — Fin solitaire
 

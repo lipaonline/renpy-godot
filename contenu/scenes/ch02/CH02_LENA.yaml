@@ -1,0 +1,27 @@
+id: CH02_LENA
+titre: Chez Léna, dans la journée
+lieu: appartement_lena
+personnages: [moi, lena]
+objectif_narratif:
+  - orienter_vers_le_chantier
+resume: Léna est chez elle le matin ; à midi elle est sortie (au café si la confiance est haute, sinon au chantier).
+notes: "lieu_lena vaut le lieu calculé par les règles « presence » de la bible au moment où la carte s'est affichée."
+
+contenu:
+  - decor: appartement_lena
+    transition: dissolve
+  - si: lieu_lena == "appartement_lena"
+    alors:
+      - montrer: lena sourire
+        position: right
+        transition: dissolve
+      - lena: "Déjà debout ? Entre, le café est chaud."
+      - moi: "Tu connaissais bien mon père ?"
+      - lena: "Assez pour savoir qu'il ne serait pas parti sans raison. Cherche du côté du chantier."
+      - effets: {lena_moi: 1}
+    sinon:
+      - narration: "Je frappe. Personne. Léna est sortie ; sa porte reste close."
+  - temps: 1
+  - appel: CH02_HEURE
+
+carte: immeuble

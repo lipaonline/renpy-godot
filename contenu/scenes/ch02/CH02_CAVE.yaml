@@ -1,0 +1,24 @@
+id: CH02_CAVE
+titre: La cave
+lieu: cave
+personnages: [moi]
+objectif_narratif:
+  - retrouver_les_outils_du_pere
+resume: "La cave commune, fermée le soir : les outils du père, marqués au nom du chantier. Coûte une heure."
+
+contenu:
+  - decor: cave_immeuble
+    transition: dissolve
+  - si: mystere >= 3
+    alors:
+      - narration: "Les outils du père sont toujours là, marqués au nom du chantier. Je sais déjà où ils l'ont mené."
+    sinon:
+      - narration: "Dans le box du père, une caisse d'outils marquée au nom du chantier. Il y travaillait encore la veille de son départ."
+      - effets: {mystere: 1}
+  - si: moi_observation >= 1
+    alors:
+      - narration: "Un détail m'accroche : une date gravée sur le manche du marteau, la veille de son départ."
+  - temps: 1
+  - appel: CH02_HEURE
+
+carte: immeuble

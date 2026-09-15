@@ -1,0 +1,12 @@
+id: CH02_CHAMBRE
+titre: La chambre
+lieu: chambre
+personnages: [moi]
+resume: "La chambre du père : une commode, rien de plus pour l'instant. Ne coûte pas de temps."
+
+contenu:
+  - decor: chambre_matin
+    transition: dissolve
+  - narration: "Le lit est fait, la commode vide. Il n'a rien laissé ici, ou quelqu'un est passé avant moi."
+
+carte: appartement
